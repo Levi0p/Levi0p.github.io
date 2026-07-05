@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Machine Learning — Krrish Bhasin</title>
+<meta name="description" content="Machine learning research and projects — low-resource translation, LoRA fine-tuning, and a from-scratch Mixture-of-Experts layer.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="nav-mark" href="index.html">KB</a>
+    <div class="nav-links">
+      <div class="nav-links-text">
+        <a href="index.html">Home</a>
+        <a href="ml.html" class="active">Machine Learning</a>
+        <a href="cp.html">Compete</a>
+        <a href="genesis.html">Genesis</a>
+        <a href="mailto:f20240534@goa.bits-pilani.ac.in">Contact</a>
+      </div>
+      <button id="themeToggle" type="button" aria-label="Toggle color theme">Theme</button>
+    </div>
+  </div>
+</nav>
+
+<header class="hero compact">
+  <div class="wrap fade-in">
+    <p class="eyebrow">Machine Learning</p>
+    <h1 class="page-title">Research &amp; Projects</h1>
+    <p class="tagline">Low-resource neural machine translation, parameter-efficient fine-tuning, and the systems work in between.</p>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2 style="font-size: var(--fs-section); margin-bottom: 1.75rem;">Experience</h2>
+
+    <div class="entry" style="margin-top: 0; padding-top: 0; border-top: none;">
+      <div class="entry-head">
+        <span class="entry-title">ML Research Intern — Indian Institute of Technology Bombay</span>
+        <span class="entry-meta">Aug 2025 – Feb 2026</span>
+      </div>
+      <p class="entry-sub">NLP / Machine Translation Lab, advised by Prof. Ganesh Ramakrishnan</p>
+      <ul class="bullets">
+        <li>Researched neural machine translation for Indic languages with transformer models (IndicTrans2) across Hindi–English and multi-Indic pairs.</li>
+        <li>Fine-tuned models in Fairseq on large parallel corpora; benchmarked quality with BLEU and chrF across language pairs.</li>
+        <li>Built an LLM post-correction pipeline with domain-specific glossary injection, improving translation consistency for rare/technical vocabulary.</li>
+        <li>Diagnosed and fixed tokenization mismatches destabilizing training runs in the lab's Udaan OCR/MT pipeline.</li>
+        <li>Ran controlled ablations comparing fine-tuned vs. zero-shot performance and presented findings to the lab.</li>
+      </ul>
+    </div>
+
+    <div class="entry">
+      <div class="entry-head">
+        <span class="entry-title">Software Engineering Intern — Hodo Stays</span>
+        <span class="entry-meta">May 2025 – Jul 2025</span>
+      </div>
+      <p class="entry-sub">LLM-powered guest communication for a hospitality SaaS platform</p>
+      <ul class="bullets">
+        <li>Designed and shipped a multi-channel (WhatsApp, email, in-app) guest messaging system automating routine guest communication.</li>
+        <li>Engineered a three-class intent classifier (booking / maintenance / general) reaching ~91% accuracy, cutting manual triage.</li>
+        <li>Built the backend on Supabase (Postgres, real-time) with model calls routed through OpenRouter, ~1.4s median response time.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-grid with-margin">
+      <div>
+        <h2 style="font-size: var(--fs-section); margin-bottom: 1.75rem;">Projects</h2>
+
+        <div class="entry" style="margin-top: 0; padding-top: 0; border-top: none;">
+          <div class="entry-head">
+            <span class="entry-title">Mixture-of-Experts Layer for Named Entity Recognition</span>
+          </div>
+          <p class="entry-sub">Python, PyTorch, HuggingFace</p>
+          <ul class="bullets">
+            <li>Implemented a sparse Mixture-of-Experts layer from scratch — 4 expert MLPs with learned top-2 gating — following the established sparse-MoE design pattern.</li>
+            <li>Integrated the layer into a BiLSTM sequence tagger for NER, evaluated on the CoNLL-2003 benchmark.</li>
+            <li>Combined with contrastive learning; ran ablations against the baseline BiLSTM to isolate the MoE contribution.</li>
+          </ul>
+          <div class="proj-links"><a href="https://github.com/Levi0p/-moe-ner" target="_blank" rel="noopener">github.com/Levi0p/-moe-ner →</a></div>
+        </div>
+
+        <div class="entry">
+          <div class="entry-head">
+            <span class="entry-title">LoRA-Fine-Tuned, RAG-Augmented LLM for Domain-Specific QA</span>
+          </div>
+          <p class="entry-sub">Python, PyTorch, HuggingFace, FAISS</p>
+          <ul class="bullets">
+            <li>Fine-tuned LLaMA with LoRA (parameter-efficient fine-tuning) on a curated domain-specific instruction dataset.</li>
+            <li>Added a FAISS retrieval-augmented pipeline over the domain corpus to reduce hallucination and improve factual grounding.</li>
+            <li>Evaluated with BLEU and ROUGE; LoRA + RAG outperformed zero-shot prompting on answer relevance and factual accuracy.</li>
+          </ul>
+          <div class="proj-links"><a href="https://github.com/Levi0p/Instruction-Tuned-LLM-for-Domain-Specific-QA" target="_blank" rel="noopener">github.com/Levi0p/Instruction-Tuned-LLM-for-Domain-Specific-QA →</a></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="stat-block">
+          <span class="stat-num">+1.2% / +3.2%</span>
+          <span class="stat-label">accuracy / entity-F1 vs. baseline BiLSTM, CoNLL-2003</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap" style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:1rem; width:100%;">
+    <span>© 2026 Krrish Bhasin</span>
+    <span>
+      <a href="mailto:f20240534@goa.bits-pilani.ac.in">email</a> ·
+      <a href="https://github.com/Levi0p" target="_blank" rel="noopener">github</a> ·
+      <a href="https://www.linkedin.com/in/krrish-bhasin/" target="_blank" rel="noopener">linkedin</a>
+    </span>
+  </div>
+</footer>
+
+<script src="theme.js"></script>
+</body>
+</html>
