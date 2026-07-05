@@ -79,7 +79,7 @@
           <ul class="bullets">
             <li>Implemented a sparse Mixture-of-Experts layer from scratch — 4 expert MLPs with learned top-2 gating — following the established sparse-MoE design pattern.</li>
             <li>Integrated the layer into a BiLSTM sequence tagger for NER, evaluated on the CoNLL-2003 benchmark.</li>
-            <li>Combined with contrastive learning; ran ablations against the baseline BiLSTM to isolate the MoE contribution.</li>
+            <li>Ran controlled ablations against the baseline BiLSTM to isolate the MoE contribution — a mixed result: entity-F1 improved narrowly, accuracy did not, on a single run.</li>
           </ul>
           <div class="proj-links"><a href="https://github.com/Levi0p/-moe-ner" target="_blank" rel="noopener">github.com/Levi0p/-moe-ner →</a></div>
         </div>
@@ -100,8 +100,8 @@
 
       <div>
         <div class="stat-block">
-          <span class="stat-num">+1.2% / +3.2%</span>
-          <span class="stat-label">accuracy / entity-F1 vs. baseline BiLSTM, CoNLL-2003</span>
+          <span class="stat-num">3.7M → 4.2M</span>
+          <span class="stat-label">parameters, base BiLSTM → BiLSTM+MoE</span>
         </div>
       </div>
     </div>
