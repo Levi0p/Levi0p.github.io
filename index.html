@@ -1,4 +1,4 @@
-<title>Krrish Bhasin — ML Research</title>
+<title>Krrish Bhasin</title>
 <meta name="description" content="Krrish Bhasin — machine learning research: low-resource neural machine translation, parameter-efficient fine-tuning, and agentic systems.">
 <style>
   @font-face {
@@ -49,19 +49,22 @@
     --border: #CBCFC3;
     --code-bg: #E4E7DF;
     --shadow: 0 1px 2px rgba(20, 22, 18, 0.06);
+    --ghost-opacity: 0.05;
+    --nav-bg: rgba(238, 240, 236, 0.82);
 
     --font-display: 'Fraunces', ui-serif, Georgia, 'Iowan Old Style', serif;
     --font-body: 'Work Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
-    --fs-hero: clamp(2.4rem, 6vw, 4.2rem);
-    --fs-h2: clamp(1.4rem, 2.6vw, 1.9rem);
-    --fs-h3: 1.125rem;
+    --fs-hero: clamp(3rem, 8vw, 5.6rem);
+    --fs-section: clamp(1.9rem, 4.4vw, 2.8rem);
+    --fs-ghost: clamp(5.5rem, 19vw, 12.5rem);
+    --fs-h3: 1.15rem;
     --fs-body: 1.0625rem;
     --fs-small: 0.9rem;
     --fs-micro: 0.75rem;
 
-    --content-w: 700px;
+    --content-w: 720px;
     --gutter: clamp(1.5rem, 5vw, 3rem);
   }
 
@@ -78,6 +81,8 @@
       --border: #262B36;
       --code-bg: #1B2029;
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --ghost-opacity: 0.07;
+      --nav-bg: rgba(16, 19, 26, 0.78);
     }
   }
 
@@ -93,6 +98,8 @@
     --border: #262B36;
     --code-bg: #1B2029;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --ghost-opacity: 0.07;
+    --nav-bg: rgba(16, 19, 26, 0.78);
   }
 
   :root[data-theme="light"] {
@@ -107,13 +114,13 @@
     --border: #CBCFC3;
     --code-bg: #E4E7DF;
     --shadow: 0 1px 2px rgba(20, 22, 18, 0.06);
+    --ghost-opacity: 0.05;
+    --nav-bg: rgba(238, 240, 236, 0.82);
   }
 
   * { box-sizing: border-box; }
 
-  html {
-    background: var(--bg);
-  }
+  html { background: var(--bg); }
 
   body {
     margin: 0;
@@ -143,6 +150,8 @@
     max-width: calc(var(--content-w) + 2 * var(--gutter));
     margin: 0 auto;
     padding: 0 var(--gutter);
+    position: relative;
+    z-index: 1;
   }
 
   .eyebrow {
@@ -163,15 +172,52 @@
     color: var(--text);
   }
 
+  .section-title {
+    font-size: var(--fs-section);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    margin-bottom: 1.75rem;
+  }
+
   p { margin: 0 0 1rem; color: var(--text-dim); max-width: 62ch; }
   p:last-child { margin-bottom: 0; }
 
-  /* ---------- Theme toggle ---------- */
-  .theme-toggle {
-    position: fixed;
-    top: 1.25rem;
-    right: 1.25rem;
-    z-index: 10;
+  /* ---------- Nav ---------- */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--nav-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav .wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.9rem;
+    padding-bottom: 0.9rem;
+    max-width: calc(var(--content-w) + 2 * var(--gutter) + 100px);
+  }
+  .nav-mark {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--text);
+  }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: clamp(1rem, 2.5vw, 1.75rem);
+    font-family: var(--font-mono);
+    font-size: var(--fs-micro);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .nav-links a { color: var(--text-dim); }
+  .nav-links a:hover { color: var(--accent); }
+  .nav-links button {
     font-family: var(--font-mono);
     font-size: var(--fs-micro);
     letter-spacing: 0.06em;
@@ -179,76 +225,68 @@
     background: var(--surface);
     border: 1px solid var(--border);
     color: var(--text-dim);
-    padding: 0.4rem 0.7rem;
+    padding: 0.32rem 0.65rem;
     border-radius: 999px;
     cursor: pointer;
   }
-  .theme-toggle:hover { color: var(--text); border-color: var(--text-faint); }
+  .nav-links button:hover { color: var(--text); border-color: var(--text-faint); }
+  .nav-links .nav-links-text { display: flex; gap: clamp(1rem, 2.5vw, 1.75rem); }
+  @media (max-width: 560px) {
+    .nav-links-text { display: none; }
+  }
+
+  /* ---------- Ghost watermark words ---------- */
+  .ghost-word {
+    position: absolute;
+    pointer-events: none;
+    user-select: none;
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--text);
+    opacity: var(--ghost-opacity);
+    font-size: var(--fs-ghost);
+    line-height: 1;
+    white-space: nowrap;
+    left: clamp(-0.3rem, -1vw, 0rem);
+    z-index: 0;
+  }
+  .ghost-word.top { top: -0.08em; }
+  .ghost-word.bottom { bottom: -0.22em; }
 
   /* ---------- Hero ---------- */
   .hero {
-    padding: clamp(4rem, 12vh, 7rem) 0 clamp(3rem, 8vh, 4.5rem);
+    position: relative;
+    overflow: hidden;
+    padding: clamp(4rem, 13vh, 7.5rem) 0 clamp(3.5rem, 9vh, 5rem);
     border-bottom: 1px solid var(--border);
-  }
-  .hero-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 2.5rem;
-    align-items: end;
-  }
-  @media (min-width: 780px) {
-    .hero-grid { grid-template-columns: 1fr 240px; }
   }
   h1.name {
     font-size: var(--fs-hero);
-    line-height: 1.02;
-    letter-spacing: -0.01em;
+    line-height: 0.98;
+    letter-spacing: -0.015em;
   }
   .tagline {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     color: var(--text-dim);
-    max-width: 46ch;
-    margin: 1.1rem 0 0;
+    max-width: 50ch;
+    margin: 1.25rem 0 0;
   }
   .contact-row {
     display: flex;
     flex-wrap: wrap;
     gap: 1.1rem;
-    margin-top: 1.6rem;
+    margin-top: 1.75rem;
     font-family: var(--font-mono);
     font-size: var(--fs-small);
   }
   .contact-row a { color: var(--text-dim); }
   .contact-row a:hover { color: var(--accent); }
 
-  .gloss-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 1.1rem 1.2rem;
-    box-shadow: var(--shadow);
-  }
-  .gloss-label {
-    font-family: var(--font-mono);
-    font-size: var(--fs-micro);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-faint);
-    margin-bottom: 0.6rem;
-  }
-  .gloss-src {
-    font-size: 1.05rem;
-    margin-bottom: 0.35rem;
-  }
-  .gloss-tgt {
-    font-family: var(--font-mono);
-    font-size: var(--fs-small);
-    color: var(--text-dim);
-  }
-
   /* ---------- Sections ---------- */
   section {
-    padding: clamp(3rem, 8vh, 4.5rem) 0;
+    position: relative;
+    overflow: hidden;
+    padding: clamp(3.5rem, 9vh, 5.5rem) 0;
     border-bottom: 1px solid var(--border);
   }
   section:last-of-type { border-bottom: none; }
@@ -296,10 +334,6 @@
   ul.bullets li { margin-bottom: 0.5rem; }
   ul.bullets li:last-child { margin-bottom: 0; }
 
-  .stat {
-    font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
-  }
   .stat-block {
     padding: 0.9rem 1rem;
     background: var(--surface);
@@ -350,87 +384,93 @@
   footer a:hover { color: var(--accent); }
 
   @media (prefers-reduced-motion: no-preference) {
-    .fade-in {
-      animation: fadeIn 0.7s ease both;
-    }
-    .fade-in.d1 { animation-delay: 0.08s; }
-    .fade-in.d2 { animation-delay: 0.16s; }
+    .fade-in { animation: fadeIn 0.7s ease both; }
+    .fade-in.d1 { animation-delay: 0.1s; }
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
+      from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
     }
   }
 </style>
 
-<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle color theme">Theme</button>
-
-<main class="wrap">
-  <header class="hero">
-    <div class="hero-grid">
-      <div class="fade-in">
-        <p class="eyebrow">ML Research — Low-Resource Language Translation</p>
-        <h1 class="name">Krrish Bhasin</h1>
-        <p class="tagline">Building systems that adapt — from fine-tuned transformers for Indic languages to agentic memory for low-resource domains.</p>
-        <div class="contact-row">
-          <a href="mailto:f20240534@goa.bits-pilani.ac.in">f20240534@goa.bits-pilani.ac.in</a>
-          <a href="https://github.com/Levi0p" target="_blank" rel="noopener">github.com/Levi0p</a>
-          <a href="https://www.linkedin.com/in/krrish-bhasin/" target="_blank" rel="noopener">linkedin</a>
-          <a id="resumeLink" href="#" download="Krrish_Bhasin_Resume.pdf">résumé ↓</a>
-        </div>
+<nav class="nav">
+  <div class="wrap">
+    <a class="nav-mark" href="#top">KB</a>
+    <div class="nav-links">
+      <div class="nav-links-text">
+        <a href="#experience">Work</a>
+        <a href="#projects">Projects</a>
+        <a href="#cp">Compete</a>
+        <a href="mailto:f20240534@goa.bits-pilani.ac.in">Contact</a>
       </div>
-      <div class="gloss-card fade-in d1">
-        <div class="gloss-label">hi → en</div>
-        <div class="gloss-src">मैं भाषा मॉडल पर शोध करता हूँ</div>
-        <div class="gloss-tgt">"I do research on language models"</div>
-      </div>
+      <button id="themeToggle" type="button" aria-label="Toggle color theme">Theme</button>
     </div>
-  </header>
+  </div>
+</nav>
 
-  <section id="focus">
+<header class="hero" id="top">
+  <div class="ghost-word top">Adapt</div>
+  <div class="wrap fade-in">
+    <p class="eyebrow">Machine Learning Research</p>
+    <h1 class="name">Krrish Bhasin</h1>
+    <p class="tagline">I build systems that learn to adapt — low-resource machine translation, parameter-efficient fine-tuning, and memory-augmented agents.</p>
+    <div class="contact-row">
+      <a href="mailto:f20240534@goa.bits-pilani.ac.in">f20240534@goa.bits-pilani.ac.in</a>
+      <a href="https://github.com/Levi0p" target="_blank" rel="noopener">github.com/Levi0p</a>
+      <a href="https://www.linkedin.com/in/krrish-bhasin/" target="_blank" rel="noopener">linkedin</a>
+      <a id="resumeLink" href="#" download="Krrish_Bhasin_Resume.pdf">résumé ↓</a>
+    </div>
+  </div>
+</header>
+
+<section id="focus">
+  <div class="wrap">
     <p class="eyebrow">Focus</p>
-    <p style="max-width: 62ch;">Currently preparing for ML research internships (Lossfunk, D. E. Shaw Research) while working through a from-scratch ML foundations track — Karpathy's neural-networks series, transformer internals, building a GPT from scratch on Tiny Shakespeare. Most of my applied work so far sits in low-resource neural machine translation and parameter-efficient fine-tuning, done during a research internship at IIT Bombay's NLP/MT lab.</p>
-  </section>
+    <p style="max-width: 62ch;">Currently working through a from-scratch ML foundations track — Karpathy's neural-networks series, transformer internals, building a GPT from scratch on Tiny Shakespeare — while preparing for research-internship applications. Most of my applied work so far sits in low-resource neural machine translation and parameter-efficient fine-tuning, done during a research internship at IIT Bombay's NLP/MT lab.</p>
+  </div>
+</section>
 
-  <section id="experience">
-    <div class="section-grid">
-      <div>
-        <p class="eyebrow">Experience</p>
+<section id="experience">
+  <div class="ghost-word bottom">Work</div>
+  <div class="wrap">
+    <h2 class="section-title">Experience</h2>
 
-        <div class="entry">
-          <div class="entry-head">
-            <span class="entry-title">ML Research Intern — Indian Institute of Technology Bombay</span>
-            <span class="entry-meta">Aug 2025 – Feb 2026</span>
-          </div>
-          <p class="entry-sub">NLP / Machine Translation Lab, advised by Prof. Ganesh Ramakrishnan</p>
-          <ul class="bullets">
-            <li>Researched neural machine translation for Indic languages with transformer models (IndicTrans2) across Hindi–English and multi-Indic pairs.</li>
-            <li>Fine-tuned models in Fairseq on large parallel corpora; benchmarked quality with BLEU and chrF across language pairs.</li>
-            <li>Built an LLM post-correction pipeline with domain-specific glossary injection, improving translation consistency for rare/technical vocabulary.</li>
-            <li>Diagnosed and fixed tokenization mismatches destabilizing training runs in the lab's Udaan OCR/MT pipeline.</li>
-            <li>Ran controlled ablations comparing fine-tuned vs. zero-shot performance and presented findings to the lab.</li>
-          </ul>
-        </div>
-
-        <div class="entry">
-          <div class="entry-head">
-            <span class="entry-title">Software Engineering Intern — Hodo Stays</span>
-            <span class="entry-meta">May 2025 – Jul 2025</span>
-          </div>
-          <p class="entry-sub">LLM-powered guest communication for a hospitality SaaS platform</p>
-          <ul class="bullets">
-            <li>Designed and shipped a multi-channel (WhatsApp, email, in-app) guest messaging system automating routine guest communication.</li>
-            <li>Engineered a three-class intent classifier (booking / maintenance / general) reaching ~91% accuracy, cutting manual triage.</li>
-            <li>Built the backend on Supabase (Postgres, real-time) with model calls routed through OpenRouter, ~1.4s median response time.</li>
-          </ul>
-        </div>
+    <div class="entry" style="margin-top: 0; padding-top: 0; border-top: none;">
+      <div class="entry-head">
+        <span class="entry-title">ML Research Intern — Indian Institute of Technology Bombay</span>
+        <span class="entry-meta">Aug 2025 – Feb 2026</span>
       </div>
+      <p class="entry-sub">NLP / Machine Translation Lab, advised by Prof. Ganesh Ramakrishnan</p>
+      <ul class="bullets">
+        <li>Researched neural machine translation for Indic languages with transformer models (IndicTrans2) across Hindi–English and multi-Indic pairs.</li>
+        <li>Fine-tuned models in Fairseq on large parallel corpora; benchmarked quality with BLEU and chrF across language pairs.</li>
+        <li>Built an LLM post-correction pipeline with domain-specific glossary injection, improving translation consistency for rare/technical vocabulary.</li>
+        <li>Diagnosed and fixed tokenization mismatches destabilizing training runs in the lab's Udaan OCR/MT pipeline.</li>
+        <li>Ran controlled ablations comparing fine-tuned vs. zero-shot performance and presented findings to the lab.</li>
+      </ul>
     </div>
-  </section>
 
-  <section id="projects">
+    <div class="entry">
+      <div class="entry-head">
+        <span class="entry-title">Software Engineering Intern — Hodo Stays</span>
+        <span class="entry-meta">May 2025 – Jul 2025</span>
+      </div>
+      <p class="entry-sub">LLM-powered guest communication for a hospitality SaaS platform</p>
+      <ul class="bullets">
+        <li>Designed and shipped a multi-channel (WhatsApp, email, in-app) guest messaging system automating routine guest communication.</li>
+        <li>Engineered a three-class intent classifier (booking / maintenance / general) reaching ~91% accuracy, cutting manual triage.</li>
+        <li>Built the backend on Supabase (Postgres, real-time) with model calls routed through OpenRouter, ~1.4s median response time.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="projects">
+  <div class="ghost-word top">Build</div>
+  <div class="wrap">
     <div class="section-grid with-margin">
       <div>
-        <p class="eyebrow">Projects</p>
+        <h2 class="section-title">Projects</h2>
 
         <div class="entry" style="margin-top: 0; padding-top: 0; border-top: none;">
           <div class="entry-head">
@@ -466,12 +506,15 @@
         </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section id="cp">
+<section id="cp">
+  <div class="ghost-word bottom">Compete</div>
+  <div class="wrap">
     <div class="section-grid with-margin">
       <div>
-        <p class="eyebrow">Competitive Programming</p>
+        <h2 class="section-title">Competitive Programming</h2>
         <p class="cp-line"><strong>Codeforces Specialist</strong>, peak rating 1546 (handle: <a href="https://codeforces.com/profile/Levi0p" target="_blank" rel="noopener">Levi0p</a>), 770 problems solved. NeetCode 206/250.</p>
         <p class="cp-line">Core member, <strong>AlgoManiax</strong> — BITS Goa's competitive programming club — mentoring peers and organizing ICPC-format mock contests since April 2025.</p>
       </div>
@@ -486,17 +529,19 @@
         </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <footer>
+<footer>
+  <div class="wrap" style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:1rem; width:100%;">
     <span>© 2026 Krrish Bhasin</span>
     <span>
       <a href="mailto:f20240534@goa.bits-pilani.ac.in">email</a> ·
       <a href="https://github.com/Levi0p" target="_blank" rel="noopener">github</a> ·
       <a href="https://www.linkedin.com/in/krrish-bhasin/" target="_blank" rel="noopener">linkedin</a>
     </span>
-  </footer>
-</main>
+  </div>
+</footer>
 
 <script>
   (function () {
