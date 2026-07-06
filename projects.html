@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projects — Krrish Bhasin</title>
+<meta name="description" content="Krrish Bhasin's projects — a from-scratch Mixture-of-Experts layer for NER, and a LoRA-fine-tuned, RAG-augmented LLM for domain-specific QA.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="nav-mark" href="index.html">KB</a>
+    <div class="nav-links">
+      <div class="nav-links-text">
+        <a href="index.html">Home</a>
+        <a href="experience.html">Experience</a>
+        <a href="projects.html" class="active">Projects</a>
+        <a href="cp.html">Competitive Programming</a>
+        <a href="genesis.html">Genesis</a>
+      </div>
+      <button id="themeToggle" type="button" aria-label="Toggle color theme">Theme</button>
+    </div>
+  </div>
+</nav>
+
+<header class="hero compact">
+  <div class="wrap fade-in">
+    <p class="eyebrow">Projects</p>
+    <h1 class="page-title">What I've Built</h1>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="section-grid with-margin">
+      <div>
+        <div class="entry reveal" style="margin-top: 0; padding-top: 0; border-top: none;">
+          <div class="entry-head">
+            <span class="entry-title">Mixture-of-Experts Layer for Named Entity Recognition</span>
+          </div>
+          <p class="entry-sub">Python, PyTorch, HuggingFace</p>
+          <ul class="bullets">
+            <li>Implemented a Mixture-of-Experts layer from scratch (4 expert MLPs, top-2 gating, 4.2M params vs. 3.7M baseline) and integrated it into a BiLSTM tagger for named-entity recognition.</li>
+            <li>Designed the MoE block with differentiable top-2 routing and a residual + LayerNorm connection to prevent representation collapse.</li>
+            <li>Ran ablation studies on CoNLL-2003: entity-F1 improved from 71.90% to 72.89%, while accuracy dipped slightly by 0.32%.</li>
+          </ul>
+          <div class="proj-links"><a href="https://github.com/Levi0p/-moe-ner" target="_blank" rel="noopener">github.com/Levi0p/-moe-ner →</a></div>
+        </div>
+
+        <div class="entry reveal">
+          <div class="entry-head">
+            <span class="entry-title">LoRA-Fine-Tuned, RAG-Augmented LLM for Domain-Specific QA</span>
+          </div>
+          <p class="entry-sub">Python, PyTorch, HuggingFace, FAISS</p>
+          <ul class="bullets">
+            <li>Fine-tuned LLaMA with LoRA (parameter-efficient fine-tuning) on a curated domain-specific instruction dataset.</li>
+            <li>Added a FAISS retrieval-augmented pipeline over the domain corpus to reduce hallucination and improve factual grounding.</li>
+            <li>Evaluated with BLEU and ROUGE; LoRA + RAG outperformed zero-shot prompting on answer relevance and factual accuracy.</li>
+          </ul>
+          <div class="proj-links"><a href="https://github.com/Levi0p/Instruction-Tuned-LLM-for-Domain-Specific-QA" target="_blank" rel="noopener">github.com/Levi0p/Instruction-Tuned-LLM-for-Domain-Specific-QA →</a></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="stat-block reveal">
+          <span class="stat-num">71.90% → 72.89%</span>
+          <span class="stat-label">entity-F1, base BiLSTM → BiLSTM+MoE (CoNLL-2003)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap" style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:1rem; width:100%;">
+    <span>© 2026 Krrish Bhasin</span>
+    <span>
+      <a href="mailto:f20240534@goa.bits-pilani.ac.in">email</a> ·
+      <a href="https://github.com/Levi0p" target="_blank" rel="noopener">github</a> ·
+      <a href="https://www.linkedin.com/in/krrish-bhasin/" target="_blank" rel="noopener">linkedin</a>
+    </span>
+  </div>
+</footer>
+
+<script src="theme.js"></script>
+<script src="reveal.js"></script>
+</body>
+</html>
