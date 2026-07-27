@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Projects — Krrish Bhasin</title>
-<meta name="description" content="Krrish Bhasin's projects — a from-scratch Mixture-of-Experts layer for NER, and a LoRA-fine-tuned, RAG-augmented LLM for domain-specific QA.">
+<meta name="description" content="Krrish Bhasin's projects — a from-scratch Mixture-of-Experts layer for NER, a LoRA-fine-tuned, RAG-augmented LLM for domain-specific QA, and a from-scratch speculative decoding implementation.">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -60,6 +60,19 @@
             <li>Evaluated with BLEU and ROUGE; LoRA + RAG outperformed zero-shot prompting on answer relevance and factual accuracy.</li>
           </ul>
           <div class="proj-links"><a href="https://github.com/Levi0p/Instruction-Tuned-LLM-for-Domain-Specific-QA" target="_blank" rel="noopener">github.com/Levi0p/Instruction-Tuned-LLM-for-Domain-Specific-QA →</a></div>
+        </div>
+
+        <div class="entry reveal">
+          <div class="entry-head">
+            <span class="entry-title">Speculative Decoding for LLM Inference</span>
+          </div>
+          <p class="entry-sub">Python, PyTorch, HuggingFace</p>
+          <ul class="bullets">
+            <li>Implemented speculative decoding (Leviathan et al. 2023) from scratch, including custom KV-cache management for draft/target models; validated correctness via an accept/reject sanity check (100% acceptance when draft==target).</li>
+            <li>Benchmarked on CPU and GPU (T4) against autoregressive decoding across 20 prompts; diagnosed a token-length measurement artifact and cross-validated results via three independent statistics.</li>
+            <li>Identified model scale as the key driver of the technique's hardware-dependent payoff (0.88–0.89x at 355M params).</li>
+          </ul>
+          <div class="proj-links"><a href="https://github.com/Levi0p/speculative-decoding" target="_blank" rel="noopener">github.com/Levi0p/speculative-decoding →</a></div>
         </div>
       </div>
 
