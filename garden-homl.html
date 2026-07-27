@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hands-On Machine Learning — Krrish Bhasin</title>
+<meta name="description" content="Notes on Hands-On Machine Learning with Scikit-Learn, Keras & TensorFlow, chapters 1-9.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="nav-mark" href="index.html">KB</a>
+    <div class="nav-links">
+      <div class="nav-links-text">
+        <a href="index.html">Home</a>
+        <a href="experience.html">Experience</a>
+        <a href="projects.html">Projects</a>
+        <a href="cp.html">Competitive Programming</a>
+        <a href="garden.html" class="active">Garden</a>
+      </div>
+      <button id="themeToggle" type="button" aria-label="Toggle color theme">Theme</button>
+    </div>
+  </div>
+</nav>
+
+<header class="hero compact">
+  <div class="wrap fade-in">
+    <a class="back-link" href="garden.html">← Digital Garden</a>
+    <p class="eyebrow">Hands-On Machine Learning with Scikit-Learn, Keras & TensorFlow</p>
+    <h1 class="page-title">Chapters 1–9</h1>
+  </div>
+</header>
+
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">The ML Project Workflow</p>
+    <p>Get the data → Visualize the data to gain insights → Prepare data for ML algos → Select a model and train it → Finetune the model → Present you solution and maintain your system</p>
+    <p>RMSE : Default metric for regression, penalizes large errors more</p>
+    <p>MAE : Better than RMSE when there are many outliers</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">Train/Test Split</p>
+    <p>After analyzing the data and making sure there are no assumptions, create the test/train split but if, you use a randomizer and run the program to create the test/train split it will generate a different test split and with time the model will see the entire data, to avoid that first save the test set on the first run and for subsequent runs just use that test set</p>
+    <p>Use stratified sampling when important groups/classes should have the same proportion in train and test sets</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">Finding Patterns / Correlation</p>
+    <p>After you have the data, time to find patterns int he train set. First we look for correlatiosn using Pearson's r i.e for each variable we try to see how related it is to with our target value(like median house prices). The correlation coeff ranges from [-1,1], 1 implying strong correlation, 0 implying no correlation and -1 implying correlation in the opposite direction that is inversely proportional</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">Preparing Data</p>
+    <p>Handle missing values before training, replace with median</p>
+    <p>Convert categorical features to numbers using One-Hot Encoding</p>
+    <p>Scale numerical features so they have similar ranges (important for many ML algorithms)</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">First Models</p>
+    <p>Linear Regression: Learns linear relationships, good baseline model</p>
+    <p>Decision Tree : Learns non-linear patterns, overfits easily, use cross-validation to estimate performance.</p>
+    <p>Random Forest : Collection of many decision trees, usually more accurate and less prone to overfitting.</p>
+    <p>Use cross-validation to compare models before using the test set.</p>
+    <p>Tune hyperparameters using:</p>
+    <ul class="bullets">
+      <li>Grid Search(tries every combination)</li>
+      <li>Randomized Search(tries random combinations)</li>
+    </ul>
+    <p>Evaluate the test set only once after the final model is chosen</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">Classification Basics</p>
+    <p>SGDClassifier(Stochastic Gradient Descent): Linear classifier, efficient for very large datasets.</p>
+    <p>Common scikit-learn methods:</p>
+    <ul class="bullets">
+      <li>fit() → Train the model.</li>
+      <li>predict() → Make predictions.</li>
+      <li>transform() → Apply preprocessing.</li>
+      <li>fit_transform() → Learn + apply preprocessing</li>
+      <li>fetch_openml() → Download datasets from OpenML.</li>
+    </ul>
+    <p>K-fold Cross Validation : Say your dataset has 1000 samples, create 800 train split and 200 test split and get the accuracy, then use a different 800 train split and different 200 test split and obtain test split, do this k times and then get the average, better evaluation but you have to run the whole thing k times</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">Evaluating Classifiers</p>
+    <p>Confusion Matrix : Used to evaluate classfication models ( TN FP, FN TP), you can either have high precision or high recall or vice versa</p>
+    <p>Accuracy → Measure the precentage of correct predictions (TP + TN / TP + TN + FP + FN)</p>
+    <p>Precision → when the model predicts positive, how correct is it? (TP / TP + FP)</p>
+    <p>Recall → Out of all possible positives, how many did we find? (TP / TP + FN)</p>
+    <p>F1 Score → You can combine precision and recall, into one score (2 * Precision * Recall) / (Precision + Recall) → F1 favours those models that have similar Precision and Recall scores</p>
+    <p>Threshold : say the model prdicts smth with a score, score ≥ threshold → positive, else negative, how do you set the threshold? → firt determine the scores using cross_val_predict() , use precision_recall_curve() to calculate the precision and recall values and then plot precision vs recall, then say if you want 95% precision use the graph or this code :</p>
+    <pre><code>from sklearn.metrics import precision_recall_curve
+
+y_scores = cross_val_predict(sgd_clf, X_train, y_train_5, cv=3,
+method="decision_function")
+
+precisions, recalls, thresholds = precision_recall_curve(y_train_5, y_scores)
+
+threshold_90_precision = thresholds[np.argmax(precisions >= 0.90)]
+
+y_train_pred_90 = (y_scores >= threshold_90_precision)
+
+precision_score(y_train_5, y_train_pred_90) -> 0.90</code></pre>
+    <p>High threshold → High precision, low recall</p>
+    <p>Low threshold → Low precision, high recall</p>
+    <p>ROC Curve → You can use it instead of precision vs recall curve to evaluate many thresholds, it is false positive rate vs true positive rate, ROC curves more in upper left corner are better, the area under ROC curve is called ROC AUC, more the area better the classifier</p>
+    <p>Error Analysis : After training model, you wanna see where it makes mistakes so you first create a confusion matrix, normalise the confusion matrix to see error rates</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">Linear Regression, Under the Hood</p>
+    <p>Linear Regression → y = k0 + k1x1 + k2x2 + … + knxn = k · x, we need to find such a k(paramaters) so that we can use normal equation to find k : k = Xy (where X is pseudoinverse of x), the pseudo inverse is calcuated using singular value decomposition(SVD), pseudoinverse is ((X^{top}X)^{-1})(X^{top}), it takes o(n^3) time to compute, considering (X^{top}X) is (n+1)x(n+1)</p>
+    <p>we can also use gradient descent, to use GD we need to ensure that the loss function is continuous, MSE is continuous and only has one global minima so its a good loss function, we can tune the learning rate to decide how big a step it takes</p>
+    <p>so sgd vs gd → what do we do? → we almost always use min batch gd, it combines the best of both, say there are 100 million examples, gd will go through all of them and then update k, whereas sgd would take 1 image and immediately update k, then another image and update k, and so on but this results in a zig zag patern to the minimal, also sgd does not guarantee optimal and introduces some randomnes</p>
+    <p>batch gd code :</p>
+    <pre><code>theta = np.random.randn(2,1)
+
+for epoch in range(n_epochs):
+
+# Use ALL training examples
+gradients = (2/m) * X_b.T.dot(X_b.dot(theta) - y)
+
+# Update once
+theta = theta - eta * gradients</code></pre>
+    <p>sgd code :</p>
+    <pre><code>theta = np.random.randn(2,1)
+
+for epoch in range(n_epochs):
+
+for i in range(m):
+
+random_index = np.random.randint(m)
+
+xi = X_b[random_index:random_index+1]
+yi = y[random_index:random_index+1]
+
+gradients = 2 * xi.T.dot(xi.dot(theta) - yi)
+
+theta = theta - eta * gradients</code></pre>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">Overfitting, Underfitting, Bias-Variance</p>
+    <p>if the model performs well on training data but poorly on the validation set, it is overfitting, and if it performs poorly on both then it is underfitting, if underfitting, use a more complex model or add polynomial features, if overfitting then simplify the model and more training data</p>
+    <p>Generalization Error = Bias + Variance + Irreducible error, Bias is caused when the model is simple, causes underfitting and variance is caused when the model is complex, causes overfitting and learns the noise, irreducible error is just noise in the data that cant be removed</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">Regularization</p>
+    <p>Regularization is a tool to control bias and variance, reqularization is achieved by constraining the weights which can be achieved using Ridge Regression, Lasso Regression and Elastic Net</p>
+    <p>Ridge Regression → cost function = MSE(k) + αΣk²(some penalty is added), larger weights are punished, if alpha=0, no change just a simple linear regression, if alpha is too large then weights become too small which is bad, we want to be in the middle, model's variance is reduced but the bias is increased</p>
+    <p>Lasso Regression → cost function = MSE(k) + α∑|k|, it eleiminates the weight of the least important function</p>
+    <p>Elastic Net → It is middle ground b/w ridge and lasso regression, (r=0 to r=1)</p>
+    <p>Elastic net is preferred over Lasso regression coz it behaves less erratically</p>
+    <p>Early stopping → Stop training as soon as the validation loss hits the min, after that it starts to overfit</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">Logistic & Softmax Regression</p>
+    <p>Linear regression when you want a continuous number and logistic regression when you want a probability as if spam or no spam</p>
+    <p>Logistic Regression : minimizing this loss function can only be done using gd</p>
+    <p>Softmax Regression : It can predict probabilities for multiple classes, cross entropy is the loss function used to train softmax regression</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">Support Vector Machines</p>
+    <p>Support Vector Machine(SVM) : They can do linear/non-linear classfication, regression or detetct outliers, it chooses the decision boundary that maximizes the margin (the widest gap or "street"), only the closest training points called support vectors, determine this boundary. Since SVM relies on distances, feature scaling (e.g., StandardScaler) is important so that features with larger numerical values do not dominate the decision boundary.</p>
+    <p>Hard Margin SVM → High C, it forces that two classes be properly separated so if there are outliers it will weirdly try to create the margins</p>
+    <p>Low Margin SVM → Low C, a few points on the other end are fine with it, it is okay if two classes are not completely separated, this often works better, generalises better</p>
+    <p>You can have non linear SVMs by just taking the linear SVMs and pass additional features like give x^2 along with x and it will work</p>
+    <p>Kernel Trick : Instead of explictly computing new features x → x^2,x^3,… kernel computes the result implcitly which is much faster</p>
+    <p>Similarity Features : Choose a landmark l, transform every point into Similarity(x,l) instead of using the original feature, use similarity to landmarks, distance goes up, similarity goes down</p>
+    <p>RBF Kernel : Mimics Gaussian similarity features efficiently</p>
+    <p>If dataset small + non linear → SVC (SVC supports Linear SVM, Polynomial Kernel, RBF Kernel, Kernel Trick)</p>
+    <p>if dataset large + linear → LinearSVC</p>
+    <p>if dataset massive → SGDClassifier</p>
+    <p>Linear regression combined with polynomial features → Polynomial Regression</p>
+    <p>SVM doesnt maximise accuracy, it maximises margin</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">Decision Trees</p>
+    <p>Decision Trees can do classification, regression and multioutput tasks and they dont require preprocssing, do nto require feature scaling or require centering</p>
+    <p>Decision trees are essentially binary trees excet we dont hardcore (if petal_length &lt;= 2.45: ) the model creates a split on its own, every split is a YES/NO question, it picks the split that makes the child nodes as pure as possible, for determining this w can either use GINI Impurity or see entropy impurity (How mixed are the classes in this node?, lowr impurity leads to purer node), training decision tree is expensive but predictions are fast, very sensitive to small variations in data, it overfits easily, gini is slightly easier to compute</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">Ensembles: Random Forests, Bagging, Boosting, Stacking</p>
+    <p>Random Forest : Ensemble of decision trees, an ensemble is a collection of models</p>
+    <p>In an ensemble, hard voting : each model get one vote and then we just pick the one with the highest votes</p>
+    <p>soft voting : each model has probabilities for each class, we aggreagate them for all, and pick the class with the highest probability, this often works better then hard voting</p>
+    <p>Bagging : Train multiple copies of the same model on diff random subsets of the training data sampled with replacement(duplicates allowed). Each model learns slightly different patterns, and their predictions are combined using majority voting (classification) or averaging (regression). Although each individual model may have slightly higher bias, combining them reduces variance and usually improves generalization. Since each model is trained independently, bagging can be parallelized efficiently.</p>
+    <p>Pasting : It is the same idea, except sampling is done without replacement, bagging is better</p>
+    <p>Out-of-Bag evaluation uses the ~37% of training samples that each tree never saw as a built-in validation set, allowing Bagging to estimate test performance without needing a separate validation dataset.</p>
+    <p>Random Subspaces make each tree look at different features, while Random Patches make each tree look at different examples and different features. This increases diversity among trees, which typically reduces the ensemble's variance and improves generalization.</p>
+    <p>Say we want to know which features are important, we cna use random forests for this as they can tell us how imortant each feature is. Say we train 500 decision trees in this random forest, say we want to classiy between apples and oranges, now there are multiple features like diameter and colour, at each split, decision trees constantly do is colour = red? or diameter &gt; 8cm?, so say for colour before it would be 50 apples and 50 oranges, very high impurity but, after it would be red → 48 apples, 2 oranges and orange → 48 oranges, 2 apples, low impurity, for diamater it could be very high impurity not much difference so, random forests records how much impurity dropped and affects how many samples and normalises everything to 1 and we can know which feature is important</p>
+    <p>Boosting : We train a decison tree, then we train another decsion tree based on that trying to fix the mistakes of the previous tree</p>
+    <p>Ada Boosting → First a decision tree learns, whatever samples it got wrong, their weight increases so then the next decions tree prioritizes on getting it right, and so on</p>
+    <p>Gradient Boosting → We first train the decision tree on smth like predicting house prices for A it says 120 actual is 100, B it says 95 actual is 110, C it says 65, actual is 90 so error is for A it is 20, for B is -15, for C is -25 so now we train the next decion tree on this error trying to achieve these values, final prediction is tree1 + tree2 + … + treen, adaboost fixes imp examples whereas gradient boosting fixes prediction errors, stochastic gradient boosting is instead of training on the 100% train set, we train on 25%, this performs best as it reduces variance, XGBoost(Extreme Gradient Boosting), it includes faster training, regularization and better memory usage</p>
+    <p>Stacking (stacked generalization) is an ensemble learning technique that combines multiple base models by training another model, called a meta-learner or blender, to aggregate their predictions instead of using simple voting or averaging. The training data is first split into separate subsets: the base models are trained on one subset, and their predictions on a held-out subset are used as features to create a new dataset for training the blender. This ensures the blender learns from unbiased predictions rather than predictions on data the base models have already seen. During inference, a new input is first passed through the base models, whose predictions are then fed to the blender to produce the final prediction. Stacking can also be extended to multiple layers of meta-learners, allowing increasingly sophisticated combinations of model predictions.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">Dimensionality Reduction</p>
+    <p>More dimensions a training set has, the greater risk of overfitting</p>
+    <p>Dimensionlity = Features</p>
+    <p>We do dimensionality reduction to reduce the computation, two approaches to do this :</p>
+    <p>Projection → Some features are constant so, we can turn a 3D plane to a 2D plane using proection, however in some cases we can lose a lot of information</p>
+    <p>Manifold Learning → Often the real world data is highly correlated something in higher dimensions, could really only take few dimensions, if we consider 784 pixels so 784 features or dimensions for a handwritten number, not all 784 will be used coz we write numbers in a certain way, so we can reduce the no of features, this will reduce complexity and speed up training</p>
+    <p>Prinicipal Component Analysis(PCA) : An algorithm for dimensionality reduction, we try to devise an algorithm for preserving variance, we compress accordingly, we select the axis that preserves the most amount of variance, the ith axis is called the ith prinicipal component (PC), to find the principal components we use SVD, it decomposes X to U Σ V⊺, where V contains all the principal components, now we want to reduce the dimensionality of the dataset down to d principal components preserving as much vairance as possible, Xreduced = X*Wd, so we pick the d PCs wh make up 95% of the variance, there is also a randomized PCA and an incremental PCA where rather then reducing dimensions for the whole training batch we split it into mini batches apply PCA to it and then train it</p>
+    <p>Kernel PCA → Uses the kernel trick to perform non linear dimensionality reduction, it maps the data in a very high dimension space implicity, performs the normal PCA, captures non linear relationships, kPCA is unsupervised so two ways to decide how to use the best kernel, data → kernel PCA → logistic regression → accuracy, and then choose the kernel which gives highest classification accuracy using grid search or, we could have an unsupervised approach, what we do is usually first we map the point to a feature space then we perform a PCA and get the reduced space, the problem is when we try to invert go backwards from reduced we nd u in the feature space which could have infinite dimensions so a point can not be calculated there, what we do is initially point A → phi(A) [this is in feature space] → PCA → reduced point → Inverse PCA → phi'(A) [reconstructed feature point] → find point B in original that maps to phi'(A) → see how far A is from B, if it is close then kernel PCA preserved info well, we see how far is B from A and based on that we see how good the kernel and select the best one, in kernel PCA we take smth non linear and bring it into higher dimensions where it is linear and perform PCA</p>
+    <p>Locally Linear Embedding(LLE) : Here is what we do, originally we have a set of points, for a point A we look at the k nearest neighbours say k = 4 and then we represent A hasweighted sum of the k points so, A = 0.4k1 + 01.k2 + 0.2k3 + 0.3k4 → now we forget the point and just remeber the weights corresponding to a point, now in lower dimensions we using these weights reconstruct</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">Probability vs Likelihood</p>
+    <p>Probability → Given i know the model, how likely is the data?</p>
+    <p>Likelihood → Given the data, which model params best explain it?</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap reveal">
+    <p class="eyebrow">Clustering</p>
+    <p>Clustering → Group similar instances into clusters</p>
+    <p>K-means clustering → We pick k centroids and say there are some points on the graph, we assign each point to the closest centroid to it till everypoint has been assigned a centroid, initially each centroid is at a random coordinate but we update it by taking the mean of all its points, repeat until the assignments dont change much, hard clustering is when you assign each point to one cluster and soft clustering is when you also keep track of scores of each point, score being the distance to all the centroids so for point A it could 0.1 → dist to centroid 0, 1.7 → dist to centroid 1, 3.4 → dist to centroid 2, the algorithm will converge but it is not ncessary it will converge to the global minima, to avoid this we could runt he algorithm multiple times with different random initialisations of the coordinates of the centroids and pick the best one, to pick the best one it keeps track of a metric called the model's inertia which is the mean squared distance between each instance and it closest centroid</p>
+    <p>K-means++ → A better algorithm then the K-means which ensures that it will find the optimal solution in less no of reruns, on initialisation first pick the first centroid randomly, now assign later centroids with probability proportional to the square of their distance from the nearest existing centroid and then run K-means normally</p>
+    <p>Minibatch K-means → It can cluster huge datasets that would not be normally possible as they it would exceed memory, its faster then general K-means but its inertia is worse and it gets worse as the number of clusters increases</p>
+    <p>How do you pick the optimal number of clusters(k)? → We can't use inertia to determine, its not a good metric as inertia will always decrease as you increase the k, lower inertia does not imply optimal solution, we rather use the silhouette score, silhouette coeff can vary b/w -1 and +1, +1 means the instance is well within itw own cluster and -1 means that the instance may be assigned the wrong cluster</p>
+    <p>K-means does not work good when varying densities or non spherical shapes</p>
+    <p>Clustering can be used for image segmentation, dimensionality reduction and semi-supervised learning, in semi-supervised learning, K-means groups similar unlabeled instances together, we label the representative instance of each cluster, propagate those labels to nearby instances and then train a classifier like logistic regression on the resulting dataset</p>
+    <p>DBSCAN → Instead of finding k clusters, it finds dense group of points, consider the collection of points and now for each point, consider two vairables epsilon and num_samples, the epison is the radius around the point and num_samples is how many points should atleast be in this circle of radius for it to be delared as a core point, if two core points are close enough they together form a cluster, now there could be a boundary point that is not declared a core point but if it is close to a core point it can join the cluster, and if a point is too far it is declared as an anomaly</p>
+    <p>Gaussian Mixture Model → It assumes that the data was generated by several gaussian distributions mixed together, evey gaussian has 3 things → mean,covariance,weight(how many points in the cluster / total number of points), in K-mean each point belongs to a cluster which is hard clustering but here it is soft clustering where each point gets a probability distribution like 40% for cluster 1, 20% for cluster 2 and 40% for cluster 3, GMM is better when clusters are eliptical, if you want fast and spherical use K-mean, you also for GMM have to specify k which is number of gaussians, in K-mean we tried to use silhouette score or inertia to determine how many clusters but that does not work well here as the clusters can be non spherical, instead here we use Bayesian Information Criteria(BIC)</p>
+    <p>Bayesian Gaussian Mixture → Its an extension of GMM, rather then specifying the exact no of clusters, we just provide an upperbound, during training unnecessary clusters are removed, uses prior probabilities (Bayesian approach) to model uncertainty about the parameters.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap" style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:1rem; width:100%;">
+    <span>© 2026 Krrish Bhasin</span>
+    <span>
+      <a href="mailto:f20240534@goa.bits-pilani.ac.in">email</a> ·
+      <a href="https://github.com/Levi0p" target="_blank" rel="noopener">github</a> ·
+      <a href="https://www.linkedin.com/in/krrish-bhasin/" target="_blank" rel="noopener">linkedin</a>
+    </span>
+  </div>
+</footer>
+
+<script src="theme.js"></script>
+<script src="reveal.js"></script>
+</body>
+</html>
