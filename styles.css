@@ -408,3 +408,29 @@ p code {
   .card-row .reveal:nth-child(3) { transition-delay: 0.19s; }
   .card-row .reveal:nth-child(4) { transition-delay: 0.26s; }
 }
+
+/* ---------- Garden notes: reading comfort ---------- */
+body.garden-notes { --text-dim: #43473D; --surface-2: #C9CEBC; }
+@media (prefers-color-scheme: dark) {
+  body.garden-notes { --text-dim: #C2C0B4; --surface-2: #242A3D; }
+}
+:root[data-theme="light"] body.garden-notes { --text-dim: #43473D; --surface-2: #C9CEBC; }
+:root[data-theme="dark"] body.garden-notes { --text-dim: #C2C0B4; --surface-2: #242A3D; }
+
+body.garden-notes section {
+  border-bottom: none;
+  padding: 0;
+  margin: 1.4rem 0;
+}
+body.garden-notes section:first-of-type { margin-top: clamp(1.5rem, 4vh, 2.5rem); }
+body.garden-notes section:last-of-type { margin-bottom: 0; }
+body.garden-notes section > .wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding-top: clamp(1.5rem, 4vw, 2.1rem);
+  padding-bottom: clamp(1.5rem, 4vw, 2.1rem);
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+}
+body.garden-notes p { line-height: 1.7; }
