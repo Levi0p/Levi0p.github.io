@@ -136,3 +136,10 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border
 .kmctl label { color: var(--dim); display: flex; align-items: center; gap: 0.4rem; }
 #kminfo { color: var(--dim); margin-left: auto; font-variant-numeric: tabular-nums; }
 @media (max-width: 560px) { #kminfo { margin-left: 0; width: 100%; } }
+
+.diagram .hi2 { stroke: var(--link); stroke-width: 2; fill: none; }
+.diagram .em { fill: var(--accent); font-weight: 700; }
+.cmp td:first-child { font-family: var(--font); font-size: 0.85rem; color: var(--dim); font-weight: 600; }
+.cmp th:first-child { width: 16%; }
+.cmp th:nth-child(2) { width: auto; }
+.cmp td:nth-child(2) { color: var(--text); font-weight: 400; }
