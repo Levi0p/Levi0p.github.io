@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Krrish Bhasin - home</title>
 <meta name="description" content="Krrish Bhasin: CS student, machine learning, competitive programming.">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body class="">
 <div class="page">
@@ -30,12 +30,12 @@
 </div>
 </section>
 <h2>Play: k-means</h2>
-<p class="sub">Click the canvas to drop points, then press step and watch the centroids move. It's the algorithm from my <a href="garden-homl.html#clustering">clustering notes</a>.</p>
+<p class="sub">Click the canvas to drop points, then press step and watch the centroids move.</p>
 <div class="km">
 <canvas id="km" width="640" height="320" aria-label="k-means playground"></canvas>
 <div class="kmctl">
 <button id="kmstep">step</button>
-<button id="kmrun">run</button>
+<button id="kmrun" class="primary">run</button>
 <button id="kmrand">random points</button>
 <button id="kmclear">clear</button>
 <label>k <select id="kmk"><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
