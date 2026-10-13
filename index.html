@@ -29,13 +29,20 @@
 <p class="sub">f20240534 [at] goa [dot] bits-pilani [dot] ac [dot] in</p>
 </div>
 </section>
-<h2>Timeline</h2>
-<ol class="timeline">
-<li><span>Apr 2025</span>Joined AlgoManiax, the competitive programming club at BITS Goa</li>
-<li><span>Sep 2025</span>ML research intern at IIT Bombay, machine translation for Indic languages</li>
-<li><span>May 2026</span>Software engineering intern at Hodo Stays, Bengaluru</li>
-<li><span>May 2028</span>Graduating from BITS Pilani Goa (expected)</li>
-</ol>
+<h2>Play: k-means</h2>
+<p class="sub">Click the canvas to drop points, then press step and watch the centroids move. It's the algorithm from my <a href="garden-homl.html#clustering">clustering notes</a>.</p>
+<div class="km">
+<canvas id="km" width="640" height="320" aria-label="k-means playground"></canvas>
+<div class="kmctl">
+<button id="kmstep">step</button>
+<button id="kmrun">run</button>
+<button id="kmrand">random points</button>
+<button id="kmclear">clear</button>
+<label>k <select id="kmk"><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
+<span id="kminfo"></span>
+</div>
+</div>
+<script src="kmeans.js"></script>
 <h2>Around the site</h2>
 <ul class="links">
 <li><a href="ml.html">Machine learning</a><span>research, internships and projects</span></li>
