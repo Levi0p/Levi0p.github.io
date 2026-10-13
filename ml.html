@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Krrish Bhasin - machine learning</title>
+<meta name="description" content="Krrish Bhasin: CS student, machine learning, competitive programming.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="">
+<div class="page">
+<header>
+  <a class="prompt" href="index.html">krrish@bhasin:~#</a>
+  <nav>
+    <a href="index.html">home</a>
+    <a href="ml.html" class="active">machine learning</a>
+    <a href="cp.html">competitive programming</a>
+    <a href="garden.html">garden</a>
+    <a href="horror.html">horror</a>
+  </nav>
+</header>
+<main>
+<h1>Machine Learning</h1>
+<h2>Experience</h2>
+<div class="entry">
+<h3>ML Research Intern, IIT Bombay <span class="meta">Aug 2025 - Feb 2026</span></h3>
+<p class="sub">NLP / Machine Translation Lab, advised by Prof. Ganesh Ramakrishnan</p>
+<ul>
+<li>Researched neural machine translation for Indic languages with transformer models (IndicTrans2) across Hindi-English and multi-Indic pairs.</li>
+<li>Fine-tuned models in Fairseq on large parallel corpora; benchmarked quality with BLEU and chrF across language pairs.</li>
+<li>Built an LLM post-correction pipeline with domain-specific glossary injection, improving translation consistency for rare/technical vocabulary.</li>
+<li>Diagnosed and fixed tokenization mismatches destabilizing training runs in the lab's Udaan OCR/MT pipeline.</li>
+<li>Ran controlled ablations comparing fine-tuned vs. zero-shot performance and presented findings to the lab.</li>
+</ul>
+</div>
+<div class="entry">
+<h3>Software Engineering Intern, Hodo Stays <span class="meta">May 2025 - Jul 2025</span></h3>
+<p class="sub">LLM-powered guest communication for a hospitality SaaS platform</p>
+<ul>
+<li>Designed and shipped a multi-channel (WhatsApp, email, in-app) guest messaging system automating routine guest communication.</li>
+<li>Engineered a three-class intent classifier (booking / maintenance / general) reaching ~91% accuracy, cutting manual triage.</li>
+<li>Built the backend on Supabase (Postgres, real-time) with model calls routed through OpenRouter, ~1.4s median response time.</li>
+</ul>
+</div>
+<h2>Projects</h2>
+<div class="entry">
+<h3>Mixture-of-Experts Layer for Named Entity Recognition</h3>
+<p class="sub">Python, PyTorch, HuggingFace</p>
+<ul>
+<li>Implemented a Mixture-of-Experts layer from scratch (4 expert MLPs, top-2 gating, 4.2M params vs. 3.7M baseline) and integrated it into a BiLSTM tagger for named-entity recognition.</li>
+<li>Designed the MoE block with differentiable top-2 routing and a residual + LayerNorm connection to prevent representation collapse.</li>
+<li>Ran ablation studies on CoNLL-2003: entity-F1 improved from 71.90% to 72.89%, while accuracy dipped slightly by 0.32%.</li>
+</ul>
+<p><a href="https://github.com/Levi0p/-moe-ner">github.com/Levi0p/-moe-ner</a></p>
+</div>
+<div class="entry">
+<h3>LoRA-Fine-Tuned, RAG-Augmented LLM for Domain-Specific QA</h3>
+<p class="sub">Python, PyTorch, HuggingFace, FAISS</p>
+<ul>
+<li>Fine-tuned LLaMA with LoRA (parameter-efficient fine-tuning) on a curated domain-specific instruction dataset.</li>
+<li>Added a FAISS retrieval-augmented pipeline over the domain corpus to reduce hallucination and improve factual grounding.</li>
+<li>Evaluated with BLEU and ROUGE; LoRA + RAG outperformed zero-shot prompting on answer relevance and factual accuracy.</li>
+</ul>
+<p><a href="https://github.com/Levi0p/Instruction-Tuned-LLM-for-Domain-Specific-QA">github.com/Levi0p/Instruction-Tuned-LLM-for-Domain-Specific-QA</a></p>
+</div>
+<div class="entry">
+<h3>Speculative Decoding for LLM Inference</h3>
+<p class="sub">Python, PyTorch, HuggingFace</p>
+<ul>
+<li>Implemented speculative decoding (Leviathan et al. 2023) from scratch, including custom KV-cache management for draft/target models; validated correctness via an accept/reject sanity check (100% acceptance when draft==target).</li>
+<li>Benchmarked on CPU and GPU (T4) against autoregressive decoding across 20 prompts; diagnosed a token-length measurement artifact and cross-validated results via three independent statistics.</li>
+<li>Identified model scale as the key driver of the technique's hardware-dependent payoff (0.88-0.89x at 355M params).</li>
+</ul>
+<p><a href="https://github.com/Levi0p/speculative-decoding">github.com/Levi0p/speculative-decoding</a></p>
+</div>
+
+</main>
+<footer>
+  <span>Built by hand. Updated October 2026.</span>
+</footer>
+</div>
+</body>
+</html>
