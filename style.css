@@ -93,13 +93,12 @@ code, pre { font-family: var(--mono); }
 
 /* horror */
 .rules li { color: var(--dim); }
-.films { list-style: none; padding: 0; margin-top: 2rem; }
-.film { margin-bottom: 1.6rem; }
-.fh { display: flex; justify-content: space-between; gap: 1rem; font-weight: 700; }
-.fr { color: var(--accent); white-space: nowrap; }
-.bar { height: 3px; background: var(--border); margin: 0.3rem 0 0.5rem; }
-.bar span { display: block; height: 100%; background: var(--accent); }
-.film p { margin: 0; color: var(--dim); }
+.ranking { width: 100%; border-collapse: collapse; margin-top: 1.5rem; font-size: 0.88rem; }
+.ranking th, .ranking td { border: 1px solid var(--border); padding: 0.55rem 0.75rem; text-align: left; vertical-align: top; }
+.ranking th { font-weight: 600; background: var(--code-bg); }
+.ranking td:first-child { width: 22%; }
+.ranking td:nth-child(2) { width: 15%; white-space: nowrap; }
+.ranking tr:nth-child(even) td { background: color-mix(in srgb, var(--code-bg) 45%, transparent); }
 
 footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--dim); font-size: 0.8rem; }
 
@@ -110,14 +109,9 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border
   .links li { flex-direction: column; gap: 0; }
 }
 
-/* home extras */
-.cf { margin: 0 0 1rem; }
-.cf svg { width: 100%; height: auto; display: block; border: 1px solid var(--border); border-radius: 6px; background: var(--code-bg); }
-.cf text { fill: var(--dim); font-family: var(--font); font-size: 11px; }
-.cf .grid { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 3; }
-.cf .ln { stroke: var(--accent); stroke-width: 2; fill: none; stroke-linejoin: round; }
-.cf .pk { fill: var(--accent); }
-.cf figcaption { color: var(--dim); font-size: 0.8rem; margin-top: 0.4rem; }
-.now { list-style: none; padding: 0; }
-.now li { margin-bottom: 0.5rem; }
-.now b { display: inline-block; min-width: 6rem; color: var(--accent); font-weight: 600; }
+
+.timeline { list-style: none; padding: 0; margin: 0; border-left: 2px solid var(--border); }
+.timeline li { padding: 0 0 0.9rem 1rem; position: relative; }
+.timeline li::before { content: ""; position: absolute; left: -6px; top: 0.55rem; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.timeline span { display: inline-block; min-width: 5.5rem; color: var(--dim); font-size: 0.85rem; }
+@media (max-width: 560px) { .timeline span { display: block; } .ranking { font-size: 0.8rem; } .ranking th, .ranking td { padding: 0.4rem; } }
