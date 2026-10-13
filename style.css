@@ -109,3 +109,15 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border
   .intro { flex-direction: column; align-items: flex-start; }
   .links li { flex-direction: column; gap: 0; }
 }
+
+/* home extras */
+.cf { margin: 0 0 1rem; }
+.cf svg { width: 100%; height: auto; display: block; border: 1px solid var(--border); border-radius: 6px; background: var(--code-bg); }
+.cf text { fill: var(--dim); font-family: var(--font); font-size: 11px; }
+.cf .grid { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 3; }
+.cf .ln { stroke: var(--accent); stroke-width: 2; fill: none; stroke-linejoin: round; }
+.cf .pk { fill: var(--accent); }
+.cf figcaption { color: var(--dim); font-size: 0.8rem; margin-top: 0.4rem; }
+.now { list-style: none; padding: 0; }
+.now li { margin-bottom: 0.5rem; }
+.now b { display: inline-block; min-width: 6rem; color: var(--accent); font-weight: 600; }
