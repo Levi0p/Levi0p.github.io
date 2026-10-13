@@ -1,0 +1,102 @@
+:root {
+  --bg: #fbfbf8;
+  --text: #1c1c1c;
+  --dim: #666;
+  --accent: #b3261e;
+  --link: #1a4fa0;
+  --border: #ddd;
+  --code-bg: #f1f1ec;
+  --font: "SF Mono", "JetBrains Mono", Menlo, Consolas, ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1d1f21;
+    --text: #d6d6d6;
+    --dim: #8b8f94;
+    --accent: #ff6b5e;
+    --link: #7fb2ff;
+    --border: #33363a;
+    --code-bg: #26292c;
+  }
+}
+* { box-sizing: border-box; }
+html { font-size: 16px; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  line-height: 1.7;
+}
+.page { max-width: 760px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+header { padding-bottom: 1rem; border-bottom: 1px dashed var(--border); margin-bottom: 2rem; }
+.prompt { color: var(--accent); font-weight: 700; display: inline-block; margin-bottom: 0.5rem; }
+nav a { margin-right: 1.1rem; display: inline-block; color: var(--text); }
+nav a.active { color: var(--accent); text-decoration: underline; }
+
+h1 { font-size: 1.7rem; margin: 0 0 1rem; }
+h1::before { content: "# "; color: var(--accent); }
+h2 { font-size: 1.2rem; margin: 2.2rem 0 0.6rem; }
+h2::before { content: "## "; color: var(--accent); }
+h3 { font-size: 1rem; margin: 0 0 0.2rem; }
+p, li { font-size: 0.95rem; }
+p { margin: 0 0 1rem; }
+.lead { color: var(--dim); }
+.sub, .postmeta, .crumb, .meta { color: var(--dim); font-size: 0.85rem; }
+.meta { font-weight: 400; margin-left: 0.5rem; }
+.sub { margin: 0 0 0.5rem; }
+ul { padding-left: 1.3rem; margin: 0 0 1rem; }
+li { margin-bottom: 0.4rem; }
+.entry { margin-bottom: 2rem; }
+
+.me { display: block; width: 190px; height: 190px; object-fit: cover; object-position: top; border-radius: 4px; margin: 1rem 0; border: 1px solid var(--border); }
+.socials { margin-top: 0; }
+
+.stats { border-collapse: collapse; margin-top: 1.5rem; }
+.stats td { padding: 0.35rem 1.5rem 0.35rem 0; font-size: 0.9rem; color: var(--dim); }
+.stats td.num { color: var(--accent); font-size: 1.3rem; font-weight: 700; }
+
+/* garden list */
+.post { margin-bottom: 2rem; }
+.post h2 { margin: 0 0 0.2rem; font-size: 1.1rem; }
+.post h2::before { content: ""; }
+
+/* notes */
+.notes section { margin-bottom: 0.5rem; }
+.notes p { text-align: left; }
+.toc { border: 1px dashed var(--border); padding: 0.6rem 1rem; margin: 1rem 0 2rem; }
+.toc summary { cursor: pointer; color: var(--accent); }
+.toc ol { margin: 0.6rem 0 0; padding-left: 1.4rem; columns: 2; column-gap: 2rem; }
+.toc li { font-size: 0.85rem; margin-bottom: 0.15rem; break-inside: avoid; }
+pre { background: var(--code-bg); padding: 0.9rem 1rem; overflow-x: auto; border-radius: 4px; font-size: 0.82rem; line-height: 1.5; margin: 0 0 1rem; }
+code { font-family: var(--font); }
+.diagram { margin: 1.2rem 0 1.5rem; }
+.diagram svg { width: 100%; height: auto; display: block; }
+.diagram text { fill: var(--text); font-family: var(--font); font-size: 12px; }
+.diagram .cap { fill: var(--dim); font-size: 11px; }
+.diagram .b { fill: none; stroke: var(--dim); stroke-width: 1; }
+.diagram .bad { fill: none; stroke: var(--accent); stroke-width: 1; }
+.diagram .hi { fill: var(--accent); fill-opacity: 0.25; stroke: var(--accent); }
+.diagram .arr { stroke: var(--accent); stroke-width: 1.5; fill: none; marker-end: none; }
+.diagram .pt { fill: var(--text); }
+.diagram .ln { stroke: var(--accent); stroke-width: 2; fill: none; }
+
+/* horror */
+.rules li { color: var(--dim); }
+.films { list-style: none; padding: 0; margin-top: 2rem; }
+.film { margin-bottom: 1.6rem; }
+.fh { display: flex; justify-content: space-between; gap: 1rem; font-weight: 700; }
+.fr { color: var(--accent); white-space: nowrap; }
+.bar { height: 3px; background: var(--border); margin: 0.3rem 0 0.5rem; }
+.bar span { display: block; height: 100%; background: var(--accent); }
+.film p { margin: 0; color: var(--dim); }
+
+footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px dashed var(--border); color: var(--dim); font-size: 0.8rem; }
+
+@media (max-width: 560px) {
+  .toc ol { columns: 1; }
+  h1 { font-size: 1.4rem; }
+}
