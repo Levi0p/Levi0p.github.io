@@ -93,12 +93,6 @@ code, pre { font-family: var(--mono); }
 
 /* horror */
 .rules li { color: var(--dim); }
-.ranking { width: 100%; border-collapse: collapse; margin-top: 1.5rem; font-size: 0.88rem; }
-.ranking th, .ranking td { border: 1px solid var(--border); padding: 0.55rem 0.75rem; text-align: left; vertical-align: top; }
-.ranking th { font-weight: 600; background: var(--code-bg); }
-.ranking td:first-child { width: 22%; }
-.ranking td:nth-child(2) { width: 15%; white-space: nowrap; }
-.ranking tr:nth-child(even) td { background: color-mix(in srgb, var(--code-bg) 45%, transparent); }
 
 footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); color: var(--dim); font-size: 0.8rem; }
 
@@ -110,14 +104,35 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border
 }
 
 
-.timeline { list-style: none; padding: 0; margin: 0; border-left: 2px solid var(--border); }
-.timeline li { padding: 0 0 0.9rem 1rem; position: relative; }
-.timeline li::before { content: ""; position: absolute; left: -6px; top: 0.55rem; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
-.timeline span { display: inline-block; min-width: 5.5rem; color: var(--dim); font-size: 0.85rem; }
-@media (max-width: 560px) { .timeline span { display: block; } .ranking { font-size: 0.8rem; } .ranking th, .ranking td { padding: 0.4rem; } }
-
-.km canvas { width: 100%; height: auto; display: block; border: 1px solid var(--border); border-radius: 6px; cursor: crosshair; }
+@media (max-width: 560px) { .km canvas { width: 100%; height: auto; display: block; border: 1px solid var(--border); border-radius: 6px; cursor: crosshair; }
 .kmctl { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.6rem; font-size: 0.85rem; }
 .kmctl button, .kmctl select { font: inherit; padding: 0.25rem 0.7rem; border: 1px solid var(--border); background: var(--code-bg); color: var(--text); border-radius: 4px; cursor: pointer; }
 .kmctl button:hover { border-color: var(--accent); }
 #kminfo { color: var(--dim); margin-left: auto; }
+
+/* horror table */
+.wide .page { max-width: 1000px; }
+.ranking { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 1.5rem; font-size: 0.9rem; border: 1px solid var(--text); border-radius: 6px; overflow: hidden; table-layout: fixed; }
+.ranking th, .ranking td { padding: 0.9rem 1.1rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
+.ranking td + td, .ranking th + th { border-left: 1px solid var(--border); }
+.ranking thead th { background: var(--code-bg); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim); border-bottom: 1px solid var(--text); }
+.ranking tbody tr:last-child td { border-bottom: 0; }
+.ranking tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--code-bg) 55%, transparent); }
+.ranking tbody tr:hover td { background: var(--code-bg); }
+.ranking th:nth-child(1) { width: 22%; }
+.ranking th:nth-child(2) { width: 13%; }
+.ranking td:nth-child(1) { font-weight: 600; font-family: var(--serif); font-size: 1rem; }
+.ranking td:nth-child(2) { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.ranking td:nth-child(3) { color: var(--text); line-height: 1.75; }
+@media (max-width: 640px) { .ranking { table-layout: auto; font-size: 0.8rem; } .ranking th, .ranking td { padding: 0.55rem; } .ranking td:nth-child(1) { font-size: 0.9rem; } }
+
+/* k-means card */
+.km { border: 1px solid var(--border); border-radius: 10px; padding: 0.9rem; background: color-mix(in srgb, var(--code-bg) 50%, transparent); }
+.km canvas { width: 100%; height: auto; display: block; border-radius: 6px; cursor: crosshair; border: 1px solid var(--border); }
+.kmctl { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.8rem; font-size: 0.85rem; }
+.kmctl button, .kmctl select { font: inherit; padding: 0.4rem 0.9rem; border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 6px; cursor: pointer; transition: border-color .15s, background .15s; }
+.kmctl button:hover, .kmctl select:hover { border-color: var(--accent); }
+.kmctl button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.kmctl label { color: var(--dim); display: flex; align-items: center; gap: 0.4rem; }
+#kminfo { color: var(--dim); margin-left: auto; font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) { #kminfo { margin-left: 0; width: 100%; } }
