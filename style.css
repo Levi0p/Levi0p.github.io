@@ -2,7 +2,7 @@
   --bg: #fbfbf8;
   --text: #1c1c1c;
   --dim: #666;
-  --accent: #b3261e;
+  --accent: #444;
   --link: #1a4fa0;
   --border: #ddd;
   --code-bg: #f1f1ec;
@@ -15,7 +15,7 @@
     --bg: #1d1f21;
     --text: #d6d6d6;
     --dim: #8b8f94;
-    --accent: #ff6b5e;
+    --accent: #c8c8c8;
     --link: #7fb2ff;
     --border: #33363a;
     --code-bg: #26292c;
@@ -126,7 +126,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border
 .kmctl { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.8rem; font-size: 0.85rem; }
 .kmctl button, .kmctl select { font: inherit; padding: 0.4rem 0.9rem; border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 6px; cursor: pointer; transition: border-color .15s, background .15s; }
 .kmctl button:hover, .kmctl select:hover { border-color: var(--accent); }
-.kmctl button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.kmctl button.primary { background: var(--text); border-color: var(--text); color: var(--bg); font-weight: 600; }
 .kmctl label { color: var(--dim); display: flex; align-items: center; gap: 0.4rem; }
 #kminfo { color: var(--dim); margin-left: auto; font-variant-numeric: tabular-nums; }
 @media (max-width: 560px) { #kminfo { margin-left: 0; width: 100%; } }
