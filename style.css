@@ -115,3 +115,9 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border
 .timeline li::before { content: ""; position: absolute; left: -6px; top: 0.55rem; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
 .timeline span { display: inline-block; min-width: 5.5rem; color: var(--dim); font-size: 0.85rem; }
 @media (max-width: 560px) { .timeline span { display: block; } .ranking { font-size: 0.8rem; } .ranking th, .ranking td { padding: 0.4rem; } }
+
+.km canvas { width: 100%; height: auto; display: block; border: 1px solid var(--border); border-radius: 6px; cursor: crosshair; }
+.kmctl { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.6rem; font-size: 0.85rem; }
+.kmctl button, .kmctl select { font: inherit; padding: 0.25rem 0.7rem; border: 1px solid var(--border); background: var(--code-bg); color: var(--text); border-radius: 4px; cursor: pointer; }
+.kmctl button:hover { border-color: var(--accent); }
+#kminfo { color: var(--dim); margin-left: auto; }
