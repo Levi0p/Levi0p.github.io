@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep Learning and NLP notes - Krrish Bhasin</title>
+<meta name="description" content="Notes on weight init, normalization, regularization, transformers, RNNs/LSTMs and tokenizers (BPE, WordPiece, Unigram).">
+<link rel="stylesheet" href="style.css?v=4">
+</head>
+<body class="notes">
+<div class="page">
+<header>
+  <a class="brand" href="index.html">Krrish Bhasin</a>
+  <nav>
+    <a href="index.html">home</a>
+    <a href="ml.html">machine learning</a>
+    <a href="cp.html">competitive programming</a>
+    <a href="garden.html" class="active">garden</a>
+    <a href="horror.html">horror</a>
+  </nav>
+</header>
+<main>
+<p class="crumb"><a href="garden.html">&larr; garden</a></p>
+<h1>Deep Learning and NLP Notes</h1>
+<p class="postmeta">initialization, normalization, regularization, transformers, RNNs, and how tokenizers work · my notes</p>
+<details class="toc" open><summary>contents</summary><ol>
+<li><a href="#weight-initialization">Weight Initialization</a></li>
+<li><a href="#gradient-clipping">Gradient Clipping</a></li>
+<li><a href="#normalization-layers">Normalization Layers</a></li>
+<li><a href="#regularization-dropout-weight-decay-label-smoothing">Regularization: Dropout, Weight Decay, Label Smoothing</a></li>
+<li><a href="#transformer">Transformer</a></li>
+<li><a href="#nlp-bert-and-gpt">NLP, BERT and GPT</a></li>
+<li><a href="#rnns-lstms-and-grus">RNNs, LSTMs and GRUs</a></li>
+<li><a href="#hugging-face-odds-and-ends">Hugging Face Odds and Ends</a></li>
+<li><a href="#training-a-new-tokenizer">Training a New Tokenizer</a></li>
+<li><a href="#fast-tokenizers">Fast Tokenizers</a></li>
+<li><a href="#fast-tokenizers-in-qa">Fast Tokenizers in QA</a></li>
+<li><a href="#normalization-and-pre-tokenization">Normalization and Pre-tokenization</a></li>
+<li><a href="#sentencepiece">SentencePiece</a></li>
+<li><a href="#bpe-vs-wordpiece-vs-unigram">BPE vs WordPiece vs Unigram</a></li>
+<li><a href="#byte-pair-encoding-bpe">Byte-Pair Encoding (BPE)</a></li>
+<li><a href="#wordpiece">WordPiece</a></li>
+<li><a href="#unigram">Unigram</a></li>
+</ol></details>
+<section id="weight-initialization">
+<h2>Weight Initialization</h2>
+<p>Xavier / He Initialisation : Essentially when we set the weights for the neural network, firstly we want randomness so that there isn't symmetry in neurons but, if the weights are too large the gradients can explode and if weights are too small gradients shrink, we want the variance of gradients to remain stable, this init is performed at the very start, for Xavier we want the variance = 2/(nin+nout), so the weights are from the distribution N(0,sqrt(variance)) and for He/Kaiming init we have variance = 2/nin and weights are created from the distribution N(0,sqrt(variance))</p>
+<p>We just control the starting weights with this</p>
+<p>Activations → Output of a neuron/layer</p>
+</section>
+<section id="gradient-clipping">
+<h2>Gradient Clipping</h2>
+<p>The problem is that sometimes gradients can grow too large which will destroy everything, this is called exploding gradients, so we need a way to scale them down so they don't grow too large, for this we first calculate the norm of the vector, for V = [3,4], the norm = sqrt(3^2 + 4^2) = 5, and we set max_norm, if max_norm = 2 here, so 5 &gt; 2 → we scale the vector down by 2/5 = 0.4 → V' = [1.2,1.6], gradient clipping is done after loss.backward() and before optimizer.step(), this is what we use :</p>
+<figure class="diagram"><svg viewBox="0 0 640 200" role="img" aria-label="Gradient clipping scales a vector down">
+<line class="b" x1="60" y1="170" x2="300" y2="170"/><line class="b" x1="60" y1="170" x2="60" y2="20"/>
+<path class="ln" d="M60 170 L260 50"/><circle class="pt" cx="260" cy="50" r="4"/>
+<text x="268" y="48">V = [3, 4], norm 5</text>
+<path class="hi2" d="M60 170 L132 127"/><circle class="pk" cx="132" cy="127" r="4"/>
+<text x="140" y="140">V' = [1.2, 1.6], norm 2</text>
+<text x="360" y="60" class="cap">norm = sqrt(3^2 + 4^2) = 5</text>
+<text x="360" y="85" class="cap">max_norm = 2, so scale by 2/5 = 0.4</text>
+<text x="360" y="110" class="cap">same direction, shorter length</text>
+<text x="360" y="150" class="cap">loss.backward() -> clip -> optimizer.step()</text>
+</svg></figure>
+<pre><code>torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)</code></pre>
+</section>
+<section id="normalization-layers">
+<h2>Normalization Layers</h2>
+<p>Batch Normalisation → This is done to normalise the activations produced which leads to more stable optimization, say the layer outputs [x1,x2,x3] we first calculate the mean and then the variance and then we do X' = (X-mean)/sqrt(variance + epsilon), also we don't want to permanently enforce this pattern so we also add two learnable parameters : gamma and beta so, X'' = gamma * X' + beta, this allows it to scale and shift, also during training we can calculate the mean and variance using the batch i.e batch statistics but during inference we just have one example so we can't, so we also maintain running mean and running variance which we use during inference</p>
+<p>Layer Normalisation → The whole process is just like BatchNorm, the only difference is how it is applied, if you consider a matrix of batch * no of features, in this matrix BatchNorm would be applied column wise but, for LayerNorm we do it row wise which makes it batch independent and can even work with batch_size = 1 and we have no need for running mean or running variance in LayerNorm, usually LayerNorm is used for transformers and BatchNorm for CNNs</p>
+<figure class="diagram"><svg viewBox="0 0 640 170" role="img" aria-label="BatchNorm vs LayerNorm"><rect class="b" x="60" y="30" width="30" height="22" rx="2"/><rect class="hi" x="94" y="30" width="30" height="22" rx="2"/><rect class="b" x="128" y="30" width="30" height="22" rx="2"/><rect class="b" x="162" y="30" width="30" height="22" rx="2"/><rect class="b" x="60" y="56" width="30" height="22" rx="2"/><rect class="hi" x="94" y="56" width="30" height="22" rx="2"/><rect class="b" x="128" y="56" width="30" height="22" rx="2"/><rect class="b" x="162" y="56" width="30" height="22" rx="2"/><rect class="b" x="60" y="82" width="30" height="22" rx="2"/><rect class="hi" x="94" y="82" width="30" height="22" rx="2"/><rect class="b" x="128" y="82" width="30" height="22" rx="2"/><rect class="b" x="162" y="82" width="30" height="22" rx="2"/><rect class="b" x="60" y="108" width="30" height="22" rx="2"/><rect class="hi" x="94" y="108" width="30" height="22" rx="2"/><rect class="b" x="128" y="108" width="30" height="22" rx="2"/><rect class="b" x="162" y="108" width="30" height="22" rx="2"/><rect class="b" x="380" y="30" width="30" height="22" rx="2"/><rect class="b" x="414" y="30" width="30" height="22" rx="2"/><rect class="b" x="448" y="30" width="30" height="22" rx="2"/><rect class="b" x="482" y="30" width="30" height="22" rx="2"/><rect class="hi" x="380" y="56" width="30" height="22" rx="2"/><rect class="hi" x="414" y="56" width="30" height="22" rx="2"/><rect class="hi" x="448" y="56" width="30" height="22" rx="2"/><rect class="hi" x="482" y="56" width="30" height="22" rx="2"/><rect class="b" x="380" y="82" width="30" height="22" rx="2"/><rect class="b" x="414" y="82" width="30" height="22" rx="2"/><rect class="b" x="448" y="82" width="30" height="22" rx="2"/><rect class="b" x="482" y="82" width="30" height="22" rx="2"/><rect class="b" x="380" y="108" width="30" height="22" rx="2"/><rect class="b" x="414" y="108" width="30" height="22" rx="2"/><rect class="b" x="448" y="108" width="30" height="22" rx="2"/><rect class="b" x="482" y="108" width="30" height="22" rx="2"/>
+<text x="128" y="18" class="cap" text-anchor="middle">BatchNorm: per feature (column)</text>
+<text x="448" y="18" class="cap" text-anchor="middle">LayerNorm: per example (row)</text>
+<text x="128" y="150" class="cap" text-anchor="middle">rows = batch, columns = features</text>
+<text x="448" y="150" class="cap" text-anchor="middle">works with batch_size = 1</text>
+</svg></figure>
+</section>
+<section id="regularization-dropout-weight-decay-label-smoothing">
+<h2>Regularization: Dropout, Weight Decay, Label Smoothing</h2>
+<p>Dropout → The whole thinking behind dropout is to reduce the importance of individual neurons and to reduce overfitting, what happens is say a layer produced activations [2,6,4,8] and say p = 0.2 which means that 20% activations are dropped as in smth like [2,6,0,8], the neurons and weights are not removed only the activations are dropped, so say neuron A was important for a particular query, now the nn will have to rely on perhaps neurons B,C,D for the same task which reduces the importance of neuron A for that task which is good since it is all distributed now, also after dropping the rest of the activations are scaled by 1/(1-p), also during inference dropout is disabled</p>
+<p>Weight Decay → It is used to penalise larger weights, this reduces overfitting, L = Ldata + lambda/2 * Σwi^2, and W' = W - n * dL = W - n * lambda * W so, W' = W(1 - n * lambda), this is L2 regularization and pushes the weights towards zero, AdamW uses decoupled weight decay</p>
+<p>Label Smoothing → To decrease overconfidence in model, usually classification models, where instead of one-hot targets [0,1,0] we have smth like [0.05,0.9,0.05], this encourages better generalization</p>
+</section>
+<section id="transformer">
+<h2>Transformer</h2>
+<p>First say we get an input sentence "The cat sat", it first gets tokenized then we use an embedding matrix and it looks smth like : X = [xthe xcat xsat], we also add the positional encodings in this, now we generate the Key, Query and Value matrices, the key is what do i contain?, the query is what am i looking for? and the value is what info do i give?, we get these by Q = XWq, K = XWk, V = XWv, this gives us for all the embeddings, now we need to calculate the self-attention and we do that by Attention = softmax(QKt/sqrt(dk)) * V, now this is one attention block, we can have multiple and this is now multi-head attention, from one head it will be Z1, from another head Z2, we concatenate this and then do matrix multiplication with wo to get Z which is what we will later pass to the ffn so now, a transformer block looks like :</p>
+<figure class="diagram"><svg viewBox="0 0 640 120" role="img" aria-label="Transformer block"><rect class="b" x="5" y="35" width="96" height="50" rx="3"/><text x="53.0" y="64.0" text-anchor="middle">input</text><path class="arr" d="M101 60 h10"/><rect class="b" x="111" y="35" width="96" height="50" rx="3"/><text x="159.0" y="64.0" text-anchor="middle">multi-head attn</text><path class="arr" d="M207 60 h10"/><rect class="b" x="217" y="35" width="96" height="50" rx="3"/><text x="265.0" y="64.0" text-anchor="middle">add + norm</text><path class="arr" d="M313 60 h10"/><rect class="b" x="323" y="35" width="96" height="50" rx="3"/><text x="371.0" y="64.0" text-anchor="middle">feed forward</text><path class="arr" d="M419 60 h10"/><rect class="b" x="429" y="35" width="96" height="50" rx="3"/><text x="477.0" y="64.0" text-anchor="middle">add + norm</text><path class="arr" d="M525 60 h10"/><rect class="b" x="535" y="35" width="96" height="50" rx="3"/><text x="583.0" y="64.0" text-anchor="middle">output</text><text x="320" y="15" text-anchor="middle" class="cap">one transformer block</text><text x="320" y="108" text-anchor="middle" class="cap">residual connections wrap both the attention and the FFN</text></svg></figure>
+<p>Input → Multi-head Attention → Residual(X+A) + LayerNorm → Feedforward Neural Network(just a linear layer + ReLu + linear layer) → Residual + LayerNorm → Output</p>
+<p>The full encoder-decoder flow :</p>
+<p>Input sentence → Tokenize + Embeddings → Encoder → Self-Attention → Residual + LayerNorm → FFN → Residual + LayerNorm → Encoder Output → Decoder → Masked Self-Attention(a token can only look at itself and prev words) → Residual + LayerNorm → Cross-Attention ← Encoder Output (K,V) → Residual + LayerNorm → FFN → Residual + LayerNorm → Linear + Softmax → Output</p>
+</section>
+<section id="nlp-bert-and-gpt">
+<h2>NLP, BERT and GPT</h2>
+<p>NLP → Field of ML focused on understanding human language, LLM is a subset of NLP</p>
+<p>An LLM is a large scale language based model usually transformer based</p>
+<p>BERT uses the transformer encoder and GPT uses the transformer decoder, BERT is trained using Masked Language Modeling, useful for NER, sentiment classification, extracting embeddings, encoder coz its trying to understand text unlike decoder which generates text</p>
+<pre><code>from transformers import pipeline
+
+generator = pipeline(&quot;text-generation&quot;)
+generator(&quot;In this course, we will teach you how to&quot;, max_length=30, num_return_sequences=2)</code></pre>
+<p>Transformer Pipeline : Input text → tokenization → model → post-processing → output</p>
+<p>After self-supervised learning in which the humans are not needed to label the data and the model computes the objective automatically from the inputs of the model, after this the model goes through a process called finetuning/transfer learning</p>
+</section>
+<section id="rnns-lstms-and-grus">
+<h2>RNNs, LSTMs and GRUs</h2>
+<p>RNN → It is a NN designed to process sequential data, it essentially keeps track of hidden states as well while processing and these hidden states represent the previous information, we use this equation : ht = f(Wxh*xt + Whh*ht-1 + bh) and yt = f(Why*ht + by), where ht is current memory and ht-1 is prev memory and xt is current input and the W's are just hidden weights and bh are the biases, for translations, in which the length of the input is diff than the output, that is a sequence to sequence model, there is a problem of exploding and vanishing gradients in RNNs, coz if the length goes on too long numbers can vanish or explode, we usually use gradient clipping and that somewhat solves the exploding gradients problem but for vanishing gradients we have to use LSTMs or GRU, also RNNs do smth called backpropagation through time</p>
+<p>LSTMs → Long short term memory, this resolves the problem of shrinking gradients in RNNs which is caused due to multiple multiplications of numbers &lt;1 through backpropagation through time, alongside a ht hidden state they also use another state called cell state ct, ct has the long term memory, now there are three gates which are forget gate, input gate, output gate, ft = sigma(wf*[ht-1,xt] + bf) and it = sigma(wi*[ht-1,xt] + bi), and proposed candidate memory c~t = tanh(Wc*[ht-1,xt] + bc), and ct = ft . ct-1 + it . c~t, note that you will see ft being element wise multiplied with ct-1, this is to see how much of the prev cell state to keep and it is element wise multiplied with the candidate cell state to see how much should enter the memory, and the ot = sigma(wo*[ht-1,xt] + bo) and finally ht = ot . tanh(ct), all this helps in reducing vanishing gradients coz if ft is close to 1, gradients can pass through more effectively</p>
+<p>GRU → Gated Recurrent Unit, they only have two gates, an update gate and a reset gate, GRU generally has less parameters than LSTMs and it doesn't have a ct it just has a ht</p>
+<p>Teacher forcing → During training of an autoregressive decoder, instead of feeding the model's previous prediction as the next input, we feed the ground-truth previous token</p>
+</section>
+<section id="hugging-face-odds-and-ends">
+<h2>Hugging Face Odds and Ends</h2>
+<p>attention_mask → tells the transformer which positions are input and which are due to padding, which tokens should be attended to (1=attend, 0=ignore)</p>
+<p>padding → makes the sequence in a batch the same length</p>
+<p>checkpoint → architecture + pretrained weights</p>
+<p>config.json → architecture</p>
+<p>model.safetensors → model weights</p>
+<p>raw text → tokenizer → input_ids + attention mask + token_type_ids → padding/truncation → tensors → transformer</p>
+<p>we prefer subword based tokenizers rather than word based or character based</p>
+<p>BPE → GPT2</p>
+<p>Wordpiece → BERT</p>
+<p>encoding = text → tokens → input_ids</p>
+<pre><code>tokens = tokenizer.tokenize(text)
+ids = tokenizer.convert_tokens_to_ids(tokens)</code></pre>
+<p>TGI (text generation inference) → production LLM serving framework</p>
+<p>vLLM → high performance LLM serving framework</p>
+<p>Flash attention → optimizes attention by reducing expensive memory transfers</p>
+<p>Temperature → controls randomness of token selection</p>
+<p>Dataset.map() → applies a function to dataset examples to modify existing columns, num_proc enables multiprocessing in Dataset.map() to speed up processing</p>
+<p>Memory-mapped dataset → dataset stays on disk and is accessed as needed instead of loading the entire dataset into RAM</p>
+<p>Streaming shuffle → uses a finite buffer; it does not fully shuffle the entire huge dataset at once</p>
+<p>Similarity metric → compare embeddings using smth like dot product, higher similarity means texts are related</p>
+<p>FAISS → data structure for efficient similarity search over a large number of embeddings</p>
+<p>Nearest-neighbour search → given a query vector, give the most similar document vector</p>
+<p>one example can produce multiple features</p>
+<p>return_overflowing_tokens=True → splits long examples into multiple chunks/features</p>
+</section>
+<section id="training-a-new-tokenizer">
+<h2>Training a New Tokenizer</h2>
+<p>If the existing tokenizer is not suitable for your language or domain, you can train a new tokenizer on a corpus of your target data, most Transformer models use subword tokenization and tokenizer training is a deterministic statistical process that finds useful/frequent subwords, unlike model training which uses stochastic gradient descent. First collect a representative corpus, then process it in batches using an iterator/generator so the whole dataset does not have to be loaded into memory at once, generators load data lazily when needed, and a generator object can only be used once, so you can define a function that creates a new generator</p>
+</section>
+<section id="fast-tokenizers">
+<h2>Fast Tokenizers</h2>
+<p>Fast tokenizers are backed by the Hugging Face Tokenizers library written in Rust, while slow tokenizers are written in Python, faster speed is coz of parallelism. Fast tokenizers keep track of the original character span (offset mapping) that each token came from, which lets you map tokens ↔ words ↔ characters. You can check whether a tokenizer is fast with <code>tokenizer.is_fast</code> or <code>encoding.is_fast</code>, get the tokens with <code>encoding.tokens()</code>, get the original word corresponding to each token with <code>encoding.word_ids()</code>, and get sentence IDs with <code>sentence_ids()</code>. Special tokens such as <code>[CLS]</code> and <code>[SEP]</code> have <code>None</code> as their word ID. You can also use <code>word_to_chars()</code>, <code>token_to_chars()</code>, <code>char_to_word()</code>, and <code>char_to_token()</code> to move between words, tokens, and character positions. The definition of a word depends on the tokenizer/pre-tokenization, so different tokenizers may split things differently.</p>
+<p>For token classification/NER, the input is tokenized and passed through a token-classification model, which gives a set of logits for every token; for example, with 19 tokens and 9 labels, the output shape is <code>1 × 19 × 9</code>. Apply softmax to get probabilities and argmax to choose the predicted label; argmax can be taken directly on the logits because softmax does not change their ordering.</p>
+<p>The model's <code>id2label</code> maps label IDs to labels such as <code>O</code>, <code>B-PER</code>, <code>I-PER</code>, <code>B-ORG</code>, <code>I-ORG</code>, <code>B-LOC</code>, and <code>I-LOC</code>; <code>O</code> means outside any entity, <code>B-XXX</code> means the beginning of entity type XXX, and <code>I-XXX</code> means inside that entity. The chapter also explains IOB1 vs IOB2, where IOB1 can use <code>I-XXX</code> for the first token of an entity in some cases.</p>
+<p>Offset mapping is what lets you recover the exact character span of each predicted entity: each token gets a <code>(start,end)</code> character span, and special tokens use <code>(0,0)</code>, so you can directly slice the original text to recover the entity. This is especially useful for grouping subword tokens into complete entities without tokenizer-specific rules; for example, <code>Hu</code>, <code>##gging</code>, and <code>Face</code> can be combined simply by taking the original text span from the first token's start to the last token's end.</p>
+<p>When grouping NER predictions, consecutive tokens of the same entity type are combined, and the score can be calculated in different ways: <code>"simple"</code> uses the mean token score, <code>"first"</code> uses the first token's score, <code>"max"</code> uses the maximum token score, and <code>"average"</code> averages the scores of the words in the entity.</p>
+</section>
+<section id="fast-tokenizers-in-qa">
+<h2>Fast Tokenizers in QA</h2>
+<p>The <strong>question-answering pipeline</strong> uses a tokenizer and a QA model to find an answer span inside a context, and fast tokenizers are especially useful because they provide <strong>offset mappings</strong> that let us convert token positions back to character positions in the original text. For QA, the input is tokenized as <strong><code>[CLS] question [SEP] context [SEP]</code></strong>, and the model outputs <strong>two sets of logits</strong>, one for the token where the answer starts (<code>start_logits</code>) and one for where it ends (<code>end_logits</code>). Before applying softmax, we mask tokens that are not part of the context, while keeping <code>[CLS]</code> because some models can use it to indicate that the answer is not in the context; then softmax converts the logits into start/end probabilities.</p>
+<p>We cannot simply take the independent argmax of the start and end probabilities because we could get <code>start &gt; end</code>, so we consider possible start/end pairs and keep only valid spans where <strong>start ≤ end</strong>, then choose the highest-scoring span. The span score is calculated from the start and end probabilities, and the resulting token positions are converted to character positions using the tokenizer's <strong>offset mapping</strong>, allowing us to extract the actual answer from the original context.</p>
+<p>For <strong>long contexts</strong>, the input may exceed the model's maximum sequence length, so we truncate only the <strong>context</strong> using <code>truncation="only_second"</code>. But this can remove the answer, so instead we split the context into overlapping chunks using <code>return_overflowing_tokens=True</code>, <code>max_length</code>, and a <strong>stride</strong>; the overlap ensures an answer near a chunk boundary is less likely to be lost. <code>overflow_to_sample_mapping</code> tells us which original input each chunk came from. Each chunk is processed separately, giving separate start/end logits, and we find the best answer span across all chunks, then use the offsets to recover the corresponding characters from the original long context.</p>
+</section>
+<section id="normalization-and-pre-tokenization">
+<h2>Normalization and Pre-tokenization</h2>
+<p>Before subword tokenization, the tokenizer first does <strong>normalization</strong> and <strong>pre-tokenization</strong>. <strong>Normalization</strong> cleans the text, such as removing unnecessary whitespace, lowercasing, removing accents, and possibly applying Unicode normalization; for example, <code>bert-base-uncased</code> turns <code>"Héllò hôw are ü?"</code> into <code>"hello how are u?"</code>. <strong>Pre-tokenization</strong> then splits the text into smaller units such as words, usually using whitespace and/or punctuation, and these units become the boundaries from which the subword tokenizer learns.</p>
+<figure class="diagram"><svg viewBox="0 0 640 120" role="img" aria-label="Tokenizer pipeline"><rect class="b" x="5" y="35" width="116" height="50" rx="3"/><text x="63.0" y="64.0" text-anchor="middle">raw text</text><path class="arr" d="M121 60 h10"/><rect class="b" x="133" y="35" width="116" height="50" rx="3"/><text x="191.0" y="64.0" text-anchor="middle">normalization</text><path class="arr" d="M249 60 h10"/><rect class="b" x="261" y="35" width="116" height="50" rx="3"/><text x="319.0" y="64.0" text-anchor="middle">pre-tokenization</text><path class="arr" d="M377 60 h10"/><rect class="b" x="389" y="35" width="116" height="50" rx="3"/><text x="447.0" y="64.0" text-anchor="middle">subword model</text><path class="arr" d="M505 60 h10"/><rect class="b" x="517" y="35" width="116" height="50" rx="3"/><text x="575.0" y="64.0" text-anchor="middle">input_ids</text><text x="320" y="15" text-anchor="middle" class="cap">what a tokenizer does</text><text x="320" y="108" text-anchor="middle" class="cap">clean up, split into words, split words into subwords, map to ids</text></svg></figure>
+<p>Different tokenizers use different pre-tokenization rules: BERT splits on whitespace and punctuation and ignores repeated spaces, GPT-2 also splits on whitespace and punctuation but keeps spaces using the <code>Ġ</code> symbol, while T5/SentencePiece mainly splits on whitespace and uses <code>▁</code> to represent spaces.</p>
+</section>
+<section id="sentencepiece">
+<h2>SentencePiece</h2>
+<p>SentencePiece treats text as a sequence of Unicode characters and represents spaces with the special character <code>▁</code>. When used with <strong>Unigram</strong>, it does not require pre-tokenization, which is useful for languages such as Chinese or Japanese where spaces may not separate words. SentencePiece also supports <strong>reversible tokenization</strong>: tokens can be decoded by concatenating them and replacing <code>▁</code> with spaces, whereas BERT's normalization can make its tokenization non-reversible because repeated spaces are removed.</p>
+</section>
+<section id="bpe-vs-wordpiece-vs-unigram">
+<h2>BPE vs WordPiece vs Unigram</h2>
+<p><strong>BPE</strong> starts with a small vocabulary and repeatedly <strong>merges the most common token pair</strong>; it learns <strong>merge rules + a vocabulary</strong>, and during encoding it applies those learned merges. <strong>WordPiece</strong> also starts with a small vocabulary and merges tokens, but chooses pairs using a score based on pair frequency that favors pairs whose individual tokens are less frequent; it learns <strong>only the vocabulary</strong>, and during encoding it finds the <strong>longest vocabulary subword from the beginning of the word</strong>, then continues. <strong>Unigram</strong> starts with a <strong>large vocabulary</strong> and repeatedly removes tokens that reduce the loss the least; it learns a <strong>vocabulary plus a score for each token</strong>, and during encoding chooses the <strong>most likely tokenization</strong> using those scores.</p>
+<table class="ranking cmp">
+<thead><tr><th>&nbsp;</th><th>BPE</th><th>WordPiece</th><th>Unigram</th></tr></thead>
+<tbody>
+<tr><td>Starts with</td><td>small vocabulary</td><td>small vocabulary</td><td>large vocabulary</td></tr>
+<tr><td>Training step</td><td>merge the most frequent pair</td><td>merge the highest-scoring pair</td><td>remove tokens that hurt the loss least</td></tr>
+<tr><td>Learns</td><td>merge rules + vocabulary</td><td>vocabulary only</td><td>vocabulary + a score per token</td></tr>
+<tr><td>Encoding</td><td>apply the merges in order</td><td>longest matching subword from the start</td><td>most likely tokenization (Viterbi)</td></tr>
+<tr><td>Used in</td><td>GPT, GPT-2, RoBERTa</td><td>BERT, DistilBERT</td><td>T5, ALBERT, XLNet</td></tr>
+</tbody></table>
+</section>
+<section id="byte-pair-encoding-bpe">
+<h2>Byte-Pair Encoding (BPE)</h2>
+<p><strong>Byte-Pair Encoding</strong> is a subword tokenization algorithm used by models such as GPT, GPT-2, RoBERTa, BART, and DeBERTa. During training, BPE first takes the unique words from the normalized/pre-tokenized corpus and builds a <strong>base vocabulary from the characters</strong> appearing in those words; then it repeatedly finds the <strong>most frequent pair of consecutive tokens</strong> and merges them into a new token, adding that token to the vocabulary, and continues until the desired vocabulary size is reached. So BPE learns <strong>merge rules + a vocabulary</strong>. For example, starting from <code>h u g</code>, <code>p u g</code>, etc., if <code>(u,g)</code> is the most frequent pair, it learns <code>(u,g) → ug</code>, then it keeps finding the most frequent pair and merging it, eventually creating longer subwords such as <code>hug</code>.</p>
+<figure class="diagram"><svg viewBox="0 0 640 150" role="img" aria-label="BPE merges">
+<text x="20" y="25" class="cap">start</text><text x="120" y="25">h u g</text><text x="220" y="25">p u g</text><text x="320" y="25">p u n</text><text x="420" y="25">b u n</text>
+<text x="20" y="65" class="cap">merge (u,g)</text><text x="120" y="65">h <tspan class="em">ug</tspan></text><text x="220" y="65">p <tspan class="em">ug</tspan></text><text x="320" y="65">p u n</text><text x="420" y="65">b u n</text>
+<text x="20" y="105" class="cap">merge (h,ug)</text><text x="120" y="105"><tspan class="em">hug</tspan></text><text x="220" y="105">p ug</text><text x="320" y="105">p u n</text><text x="420" y="105">b u n</text>
+<text x="20" y="140" class="cap">each step merges the most frequent adjacent pair into one new token</text>
+</svg></figure>
+<p><strong>Byte-level BPE</strong> → GPT-2 and RoBERTa use bytes instead of Unicode characters for the initial vocabulary, giving a base vocabulary of <strong>256 possible bytes</strong>, so essentially every character can be represented and you avoid unknown-character problems such as <code>[UNK]</code>.</p>
+<p>BPE tokenization of new text works by <strong>normalization → pre-tokenization → splitting each word into characters/initial tokens → applying the learned merge rules in order</strong>. For example, if the learned rules are <code>(u,g)→ug</code>, <code>(u,n)→un</code>, and <code>(h,ug)→hug</code>, then <code>"bug"</code> becomes <code>["b","ug"]</code>; the learned rules are then applied to construct the final subwords.</p>
+<p>The main thing to understand is: <strong>BPE starts small and builds bigger tokens by repeatedly merging the most frequent adjacent pair.</strong> The final vocabulary consists of the initial vocabulary plus all the tokens created by those merges.</p>
+</section>
+<section id="wordpiece">
+<h2>WordPiece</h2>
+<p><strong>WordPiece</strong> is the subword tokenization algorithm developed by Google for BERT and later used by models such as DistilBERT and MobileBERT. It is similar to BPE during training, but the way it tokenizes new words is different. WordPiece starts with a small vocabulary containing special tokens and the initial alphabet; characters inside a word get the <code>##</code> prefix, so <code>word</code> starts as <code>w ##o ##r ##d</code>. During training, instead of choosing the <strong>most frequent pair</strong> like BPE, WordPiece calculates a score for each adjacent pair: score = frequency of pair / (frequency of first element × frequency of second element), so it favors pairs whose individual parts are relatively less frequent. It repeatedly merges the pair with the highest score until the desired vocabulary size is reached.</p>
+<p>WordPiece <strong>only saves the final vocabulary, not the merge rules</strong>. When tokenizing a new word, it finds the <strong>longest subword starting from the beginning that exists in the vocabulary</strong>, takes it, then repeats for the remaining part of the word. For example, <code>hugs</code> can become <code>["hug", "##s"]</code>. If at any point no valid subword can be found, <strong>the entire word becomes <code>[UNK]</code></strong>, unlike BPE, which can mark only unknown individual characters/tokens as unknown.</p>
+<p>So the main difference to remember is: <strong>BPE = repeatedly merge the most frequent pair and store merge rules; WordPiece = repeatedly merge the highest-scoring pair and store the final vocabulary, then tokenize by greedily taking the longest matching subword.</strong></p>
+</section>
+<section id="unigram">
+<h2>Unigram</h2>
+<p><strong>Unigram</strong> is used together with <strong>SentencePiece</strong> and is used by models such as T5, ALBERT, mBART, BigBird, and XLNet. Unlike BPE and WordPiece, which start with a small vocabulary and <strong>add/merge tokens</strong>, Unigram starts with a <strong>large vocabulary</strong> and repeatedly <strong>removes tokens</strong> until the desired vocabulary size is reached. The initial vocabulary can be built from common substrings, and the basic characters are always kept so every word can still be tokenized. At each step, Unigram computes the loss of the corpus and checks how much the loss would increase if each token were removed; tokens whose removal increases the loss the least are considered less useful and are removed, usually removing a percentage of them at each step.</p>
+<p>In SentencePiece, the input is treated as a <strong>raw character stream including spaces</strong>, with spaces represented by <code>▁</code>, which means it can work for languages that do not use spaces between words. In the Unigram model, each token has a probability based on its frequency in the corpus. To tokenize a word, Unigram considers possible segmentations and chooses the one with the <strong>highest probability</strong>, where the probability of a segmentation is the product of the probabilities of its individual tokens. Because multiplying many small probabilities is inconvenient, the implementation can work with <strong>log probabilities</strong> instead. The <strong>Viterbi algorithm</strong> is used to efficiently find the highest-probability segmentation instead of checking every possible segmentation manually.</p>
+<p>So the main difference is: <strong>BPE → start small and merge the most frequent pairs; WordPiece → start small and merge the highest-scoring pairs; Unigram → start large and remove the least useful tokens based on their effect on corpus loss.</strong></p>
+</section>
+
+</main>
+<footer>
+  <span>© 2026 Krrish Bhasin</span>
+</footer>
+</div>
+</body>
+</html>
