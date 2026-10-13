@@ -3,7 +3,7 @@
   if (!cv) return;
   var ctx = cv.getContext('2d');
   var info = document.getElementById('kminfo');
-  var COLORS = ['#e5484d', '#3e8ef7', '#2fb36d', '#f2a900', '#a45fd6'];
+  var COLORS = ['#3e8ef7', '#2fb36d', '#a45fd6', '#14b8c4', '#d6409f'];
   var pts = [], cents = [], assign = [], timer = null, iter = 0;
   var css = function (v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#888'; };
   var K = function () { return +document.getElementById('kmk').value; };
