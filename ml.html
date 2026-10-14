@@ -44,11 +44,11 @@
 </div>
 <h2>Projects</h2>
 <div class="entry">
-<h3>Improving NER with a Mixture-of-Experts Layer</h3>
+<h3>Mixture-of-Experts Layer for Named Entity Recognition</h3>
 <p class="sub">Python, PyTorch, HuggingFace</p>
 <ul>
-<li>Implemented a Mixture-of-Experts layer from scratch (4 expert MLPs, top-2 differentiable gating, 4.2M params) with a residual + LayerNorm connection to prevent representation collapse, and integrated it into a BiLSTM tagger.</li>
-<li>Designed and ran ablation studies on CoNLL-2003: entity-F1 improved from 71.90% to 72.89% vs. the baseline.</li>
+<li>Implemented a Mixture-of-Experts layer from scratch (4 expert MLPs, top-2 gating, load-balancing loss, per-expert routing diagnostics) and integrated it into a BiLSTM tagger with GloVe, character-CNN and casing features.</li>
+<li>Evaluated on CoNLL-2003 over 3 seeds against a plain BiLSTM and a parameter-matched dense-FFN control: baseline 89.4 &plusmn; 0.3 entity-F1; MoE with balancing matched it (89.3 &plusmn; 0.4) and gained ~0.9 F1 over the unbalanced MoE, with balanced expert usage (17&ndash;33% per expert).</li>
 </ul>
 <p><a href="https://github.com/Levi0p/-moe-ner">github.com/Levi0p/-moe-ner</a></p>
 </div>
