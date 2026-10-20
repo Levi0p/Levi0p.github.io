@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Make Your Own Neural Network notes - Krrish Bhasin</title>
+<meta name="description" content="Handwritten notes on Make Your Own Neural Network: linear classifiers, XOR, activation functions, forward pass, backpropagation and gradient descent.">
+<link rel="stylesheet" href="style.css?v=9">
+</head>
+<body class="notes">
+<div class="page">
+<header>
+  <a class="brand" href="index.html">Krrish Bhasin</a>
+  <nav>
+    <a href="index.html">home</a>
+    <a href="ml.html">machine learning</a>
+    <a href="garden.html" class="active">garden</a>
+    <a href="horror.html">horror</a>
+  </nav>
+</header>
+<main>
+<p class="crumb"><a href="garden.html">&larr; garden</a></p>
+<h1>Make Your Own Neural Network</h1>
+<p class="postmeta">my handwritten notes, typed up with the diagrams redrawn</p>
+<details class="toc" open><summary>contents</summary><ol>
+<li><a href="#training-data-linear-classifier">Training Data and a Linear Classifier</a></li>
+<li><a href="#xor">The XOR Problem</a></li>
+<li><a href="#neurons-and-activation">Neurons and Activation Functions</a></li>
+<li><a href="#layers">Many Inputs and Layers</a></li>
+<li><a href="#forward-pass-by-hand">A Forward Pass by Hand</a></li>
+<li><a href="#forward-pass-matrices">The Same Forward Pass with Matrices</a></li>
+<li><a href="#backpropagation">Backpropagation: Splitting the Error</a></li>
+<li><a href="#backpropagation-matrices">Backpropagating with Matrices</a></li>
+<li><a href="#gradient-descent">Gradient Descent and the Error Function</a></li>
+<li><a href="#error-derivative">The Derivative of the Error</a></li>
+<li><a href="#saturation">Saturation</a></li>
+<li><a href="#activation-and-relu">Why Activation Functions, and ReLU</a></li>
+<li><a href="#cross-entropy">Cross-Entropy</a></li>
+</ol></details>
+<section id="training-data-linear-classifier">
+<h2>Training Data and a Linear Classifier</h2>
+<p>Examples of truth used to teach a predictor / classifier are called the <strong>training data</strong>.</p>
+<p>Say we are given two examples, x = 3, y = 1 (a caterpillar) and x = 1, y = 3 (a ladybug), and we have to establish a classifier that separates them.</p>
+<figure class="diagram"><svg viewBox="0 0 420 235" role="img" aria-label="two points separated by the line y = Ax"><path class="arr" d="M60 190 L370 190 M363.7 193 L370 190 L363.7 187"/><path class="arr" d="M60 190 L60 20 M63 26.3 L60 20 L57 26.3"/><text x="378" y="194" text-anchor="start">x</text><text x="52" y="24" text-anchor="end">y</text><path class="arr" d="M105 186 L105 194"/><text x="105" y="208" text-anchor="middle">1</text><path class="arr" d="M56 145 L64 145"/><text x="50" y="149" text-anchor="end">1</text><path class="arr" d="M195 186 L195 194"/><text x="195" y="208" text-anchor="middle">3</text><path class="arr" d="M56 55 L64 55"/><text x="50" y="59" text-anchor="end">3</text><path class="ln" d="M60 190 L222 28"/><text x="230" y="32" text-anchor="start">y = Ax</text><circle class="hi" cx="105" cy="55" r="6"/><text x="75" y="41" text-anchor="start">(1, 3) ladybug</text><circle class="b" cx="195" cy="145" r="6"/><text x="207" y="149" text-anchor="start">(3, 1) caterpillar</text><text x="210" y="224" text-anchor="middle" class="cap">a line through the origin separates the two</text></svg></figure>
+<p>Use a linear model, y = Ax. Pick some random A value, look at the error, i.e. (true value − expected value), and adjust A accordingly. But what is the best way to adjust? The error is E = (A + ΔA)x − Ax, so E = ΔAx and therefore:</p>
+<div class="eq">ΔA = E / x</div>
+<p>So we make a random guess for A and then set ΔA = E/x, for the current x and the error we get, and our new function y = (A + ΔA)x is accurate for that example. But if we keep doing this for every new example, our classifier will simply match the last training example, so we might as well not have bothered with the earlier training examples. To fix this we moderate the updates. The moderating factor is called the <strong>learning rate</strong>, L:</p>
+<div class="eq">ΔA = L · (E / x)</div>
+<p>So if L = 0.5 we only update half as much as we would have done without moderation.</p>
+<p>Training examples from the real world can be noisy or contain errors, so moderating updates also helpfully limits the impact of these false examples.</p>
+
+</section>
+<section id="xor">
+<h2>The XOR Problem</h2>
+<p>There is a problem with a simple linear classifier: it can't learn XOR. OR and AND each work with a single dividing line, XOR does not.</p>
+<figure class="diagram"><svg viewBox="0 0 680 235" role="img" aria-label="OR and AND can be separated by one line, XOR cannot"><rect class="b" x="50" y="50" width="120" height="100" rx="0"/><text x="46" y="38" text-anchor="end" class="cap">(0,1)</text><text x="174" y="38" text-anchor="start" class="cap">(1,1)</text><text x="46" y="170" text-anchor="end" class="cap">(0,0)</text><text x="174" y="170" text-anchor="start" class="cap">(1,0)</text><circle class="hi" cx="50" cy="50" r="7"/><circle class="hi" cx="170" cy="50" r="7"/><circle class="hi" cx="170" cy="150" r="7"/><path class="arr" d="M44 144 L56 156 M44 156 L56 144"/><path class="ln dash" d="M35 110 L100 175"/><text x="110" y="205" text-anchor="middle">OR</text><text x="110" y="222" text-anchor="middle" class="cap">one line works</text><rect class="b" x="270" y="50" width="120" height="100" rx="0"/><text x="266" y="38" text-anchor="end" class="cap">(0,1)</text><text x="394" y="38" text-anchor="start" class="cap">(1,1)</text><text x="266" y="170" text-anchor="end" class="cap">(0,0)</text><text x="394" y="170" text-anchor="start" class="cap">(1,0)</text><circle class="hi" cx="390" cy="50" r="7"/><path class="arr" d="M264 44 L276 56 M264 56 L276 44"/><path class="arr" d="M264 144 L276 156 M264 156 L276 144"/><path class="arr" d="M384 144 L396 156 M384 156 L396 144"/><path class="ln dash" d="M325 45 L415 135"/><text x="330" y="205" text-anchor="middle">AND</text><text x="330" y="222" text-anchor="middle" class="cap">one line works</text><rect class="b" x="490" y="50" width="120" height="100" rx="0"/><text x="486" y="38" text-anchor="end" class="cap">(0,1)</text><text x="614" y="38" text-anchor="start" class="cap">(1,1)</text><text x="486" y="170" text-anchor="end" class="cap">(0,0)</text><text x="614" y="170" text-anchor="start" class="cap">(1,0)</text><circle class="hi" cx="490" cy="50" r="7"/><circle class="hi" cx="610" cy="150" r="7"/><path class="arr" d="M484 144 L496 156 M484 156 L496 144"/><path class="arr" d="M604 44 L616 56 M604 56 L616 44"/><text x="550" y="205" text-anchor="middle">XOR</text><text x="550" y="222" text-anchor="middle" class="cap">no single line works</text><text x="320" y="20" text-anchor="middle" class="cap">filled circle = 1, cross = 0</text></svg></figure>
+<p>How to fix this? Easy, we use multiple linear classifiers. XOR needs two lines.</p>
+<figure class="diagram"><svg viewBox="0 0 320 225" role="img" aria-label="XOR separated by two lines"><rect class="b" x="100" y="40" width="120" height="100" rx="0"/><text x="96" y="28" text-anchor="end" class="cap">(0,1)</text><text x="224" y="28" text-anchor="start" class="cap">(1,1)</text><text x="96" y="160" text-anchor="end" class="cap">(0,0)</text><text x="224" y="160" text-anchor="start" class="cap">(1,0)</text><circle class="hi" cx="100" cy="40" r="7"/><circle class="hi" cx="220" cy="140" r="7"/><path class="arr" d="M94 134 L106 146 M94 146 L106 134"/><path class="arr" d="M214 34 L226 46 M214 46 L226 34"/><path class="ln dash" d="M85 100 L150 165"/><path class="ln dash" d="M170 15 L235 80"/><text x="160" y="195" text-anchor="middle">XOR</text><text x="160" y="212" text-anchor="middle" class="cap">fixed with two linear classifiers</text></svg></figure>
+
+</section>
+<section id="neurons-and-activation">
+<h2>Neurons and Activation Functions</h2>
+<p>Where the idea comes from, a biological neuron:</p>
+<figure class="diagram"><svg viewBox="0 0 640 185" role="img" aria-label="a biological neuron with dendrites, cell body, axon and terminals"><path class="arr" d="M55 35 L112 68 M105 67.5 L112 68 L108.1 62.2"/><path class="arr" d="M30 90 L98 90 M91.7 93 L98 90 L91.7 87"/><path class="arr" d="M55 145 L112 112 M108.1 117.8 L112 112 L105 112.5"/><ellipse class="b" cx="160" cy="90" rx="55" ry="40"/><circle class="pt" cx="160" cy="90" r="4"/><path class="ln" d="M215 90 L450 90"/><path class="arr" d="M450 90 L500 50 M497 56.3 L500 50 L493.2 51.6"/><path class="arr" d="M450 90 L510 90 M503.7 93 L510 90 L503.7 87"/><path class="arr" d="M450 90 L500 130 M493.2 128.4 L500 130 L497 123.7"/><text x="55" y="20" text-anchor="middle">dendrites</text><text x="160" y="150" text-anchor="middle">cell body</text><text x="330" y="75" text-anchor="middle">axon</text><text x="560" y="55" text-anchor="start">terminals</text><text x="320" y="172" text-anchor="middle" class="cap">signals flow left to right; the neuron fires only once the input is strong enough</text></svg></figure>
+<p>Neurons only pass on an output / electrical signal if the input is significantly dialed up to pass a threshold.</p>
+<p>A function that takes the input signal and generates an output signal, but takes into account some kind of threshold, is called an <strong>activation function</strong>. We can create a simple step function to do this:</p>
+<figure class="diagram"><svg viewBox="0 0 420 195" role="img" aria-label="a step function that outputs 1 once the input passes a threshold"><path class="arr" d="M30 150 L400 150 M393.7 153 L400 150 L393.7 147"/><path class="arr" d="M100 180 L100 20 M103 26.3 L100 20 L97 26.3"/><text x="100" y="14" text-anchor="middle">output</text><text x="402" y="168" text-anchor="end">input</text><path class="ln" d="M100 150 L220 150 L220 60 L390 60"/><path class="arr" d="M100 166 L220 166"/><text x="160" y="183" text-anchor="middle">threshold</text><text x="395" y="52" text-anchor="end">step function</text></svg></figure>
+<p>An artificial neuron behaving like this would be like a real biological neuron: neurons fire = input reaches the threshold.</p>
+<p>To write the above function we use the <strong>sigmoid function</strong>, which is curvier, as nature hardly has any straight lines:</p>
+<figure class="diagram"><svg viewBox="0 0 300 190" role="img" aria-label="the sigmoid curve"><path class="arr" d="M10 150 L292 150 M285.7 153 L292 150 L285.7 147"/><path class="arr" d="M150 172 L150 18 M153 24.3 L150 18 L147 24.3"/><text x="144" y="16" text-anchor="end">output</text><text x="292" y="166" text-anchor="end">input</text><path class="b dash" d="M150 40 L290 40"/><text x="142" y="44" text-anchor="end">1</text><text x="142" y="99" text-anchor="end">0.5</text><path class="ln" d="M19.8 149.7 L24.1 149.7 L28.5 149.6 L32.8 149.5 L37.2 149.4 L41.5 149.3 L45.8 149.1 L50.2 148.9 L54.5 148.7 L58.9 148.4 L63.2 148 L67.5 147.6 L71.9 147.1 L76.2 146.4 L80.6 145.7 L84.9 144.8 L89.2 143.7 L93.6 142.4 L97.9 140.9 L102.3 139 L106.6 136.9 L110.9 134.4 L115.3 131.5 L119.6 128.2 L124 124.5 L128.3 120.4 L132.6 115.9 L137 111 L141.3 105.9 L145.7 100.5 L150 95 L154.3 89.5 L158.7 84.1 L163 79 L167.4 74.1 L171.7 69.6 L176 65.5 L180.4 61.8 L184.7 58.5 L189.1 55.6 L193.4 53.1 L197.7 51 L202.1 49.1 L206.4 47.6 L210.8 46.3 L215.1 45.2 L219.4 44.3 L223.8 43.6 L228.1 42.9 L232.5 42.4 L236.8 42 L241.1 41.6 L245.5 41.3 L249.8 41.1 L254.2 40.9 L258.5 40.7 L262.8 40.6 L267.2 40.5 L271.5 40.4 L275.9 40.3 L280.2 40.3"/><text x="236" y="26" text-anchor="middle">y = 1 / (1 + e⁻ˣ)</text></svg></figure>
+<div class="eq">y = <span class="frac"><span>1</span><span>1 + e<sup>−x</sup></span></span></div>
+
+</section>
+<section id="layers">
+<h2>Many Inputs and Layers</h2>
+<p>Biological neurons take many inputs. The artificial version sums them up and passes the result through the sigmoid:</p>
+<figure class="diagram"><svg viewBox="0 0 480 175" role="img" aria-label="a neuron summing three inputs then applying a sigmoid"><path class="arr" d="M80 40 L172 64 M165.1 65.4 L172 64 L166.7 59.5"/><path class="arr" d="M80 90 L162 90 M155.7 93 L162 90 L155.7 87"/><path class="arr" d="M100 140 L176 116 M170.9 120.8 L176 116 L169.1 115"/><text x="80" y="32" text-anchor="end">input a</text><text x="76" y="94" text-anchor="end">input b</text><text x="96" y="150" text-anchor="end">input c</text><circle class="b" cx="220" cy="90" r="56"/><path class="b dash" d="M220 36 L220 144"/><text x="194" y="87" text-anchor="middle">z =</text><text x="194" y="101" text-anchor="middle">a+b+c</text><text x="250" y="94" text-anchor="middle">y(z)</text><path class="arr" d="M278 90 L370 90 M363.7 93 L370 90 L363.7 87"/><text x="376" y="94" text-anchor="start">output y</text><path class="arr" d="M330 36 L250 62 M255.1 57.2 L250 62 L256.9 62.9"/><text x="336" y="34" text-anchor="start">sigmoid function</text></svg></figure>
+<p>In a network, artificial neurons are nodes arranged in layers, and every node connects to every node in the next layer.</p>
+<figure class="diagram"><svg viewBox="0 0 640 275" role="img" aria-label="a three layer network with three neurons per layer"><path class="b thin" d="M165 80 L305 80"/><path class="b thin" d="M165 80 L305 140"/><path class="b thin" d="M165 80 L305 200"/><path class="b thin" d="M165 140 L305 80"/><path class="b thin" d="M165 140 L305 140"/><path class="b thin" d="M165 140 L305 200"/><path class="b thin" d="M165 200 L305 80"/><path class="b thin" d="M165 200 L305 140"/><path class="b thin" d="M165 200 L305 200"/><path class="b thin" d="M335 80 L475 80"/><path class="b thin" d="M335 80 L475 140"/><path class="b thin" d="M335 80 L475 200"/><path class="b thin" d="M335 140 L475 80"/><path class="b thin" d="M335 140 L475 140"/><path class="b thin" d="M335 140 L475 200"/><path class="b thin" d="M335 200 L475 80"/><path class="b thin" d="M335 200 L475 140"/><path class="b thin" d="M335 200 L475 200"/><rect class="b" x="120" y="52" width="60" height="176" rx="3"/><circle class="b solid" cx="150" cy="80" r="15"/><text x="150" y="84" text-anchor="middle">1</text><circle class="b solid" cx="150" cy="140" r="15"/><text x="150" y="144" text-anchor="middle">2</text><circle class="b solid" cx="150" cy="200" r="15"/><text x="150" y="204" text-anchor="middle">3</text><rect class="b" x="290" y="52" width="60" height="176" rx="3"/><circle class="b solid" cx="320" cy="80" r="15"/><text x="320" y="84" text-anchor="middle">1</text><circle class="b solid" cx="320" cy="140" r="15"/><text x="320" y="144" text-anchor="middle">2</text><circle class="b solid" cx="320" cy="200" r="15"/><text x="320" y="204" text-anchor="middle">3</text><rect class="b" x="460" y="52" width="60" height="176" rx="3"/><circle class="b solid" cx="490" cy="80" r="15"/><text x="490" y="84" text-anchor="middle">1</text><circle class="b solid" cx="490" cy="140" r="15"/><text x="490" y="144" text-anchor="middle">2</text><circle class="b solid" cx="490" cy="200" r="15"/><text x="490" y="204" text-anchor="middle">3</text><text x="150" y="42" text-anchor="middle">layer 1</text><text x="320" y="42" text-anchor="middle">layer 2</text><text x="490" y="42" text-anchor="middle">layer 3</text><path class="arr" d="M55 80 L115 80 M108.7 83 L115 80 L108.7 77"/><path class="arr" d="M525 80 L590 80 M583.7 83 L590 80 L583.7 77"/><path class="arr" d="M55 140 L115 140 M108.7 143 L115 140 L108.7 137"/><path class="arr" d="M525 140 L590 140 M583.7 143 L590 140 L583.7 137"/><path class="arr" d="M55 200 L115 200 M108.7 203 L115 200 L108.7 197"/><path class="arr" d="M525 200 L590 200 M583.7 203 L590 200 L583.7 197"/><text x="55" y="66" text-anchor="start">inputs</text><text x="560" y="66" text-anchor="middle">outputs</text><text x="235" y="72" text-anchor="middle" class="cap">W₁,₁</text><text x="405" y="222" text-anchor="middle" class="cap">W₃,₃</text><text x="205" y="262" text-anchor="middle">neurons</text><path class="arr" d="M190 250 L158 220 M164.7 222.1 L158 220 L160.5 226.5"/><path class="arr" d="M235 250 L312 222 M307.1 227 L312 222 L305 221.3"/><text x="405" y="262" text-anchor="middle">connections</text><path class="arr" d="M405 248 L405 232 M408 238.3 L405 232 L402 238.3"/></svg></figure>
+
+</section>
+<section id="forward-pass-by-hand">
+<h2>A Forward Pass by Hand</h2>
+<p>Now we assign weights to this architecture, for example a two-node input layer feeding a two-node output layer:</p>
+<figure class="diagram"><svg viewBox="0 0 480 195" role="img" aria-label="a two by two network with weights 0.9, 0.2, 0.3, 0.8"><path class="arr" d="M20 70 L82 70 M75.7 73 L82 70 L75.7 67"/><path class="arr" d="M20 150 L82 150 M75.7 153 L82 150 L75.7 147"/><text x="14" y="62" text-anchor="start">1</text><text x="14" y="142" text-anchor="start">0.5</text><rect class="b" x="90" y="40" width="56" height="140" rx="3"/><rect class="b" x="300" y="40" width="56" height="140" rx="3"/><circle class="b" cx="118" cy="70" r="15"/><text x="118" y="74" text-anchor="middle">1</text><circle class="b" cx="118" cy="150" r="15"/><text x="118" y="154" text-anchor="middle">2</text><circle class="b" cx="328" cy="70" r="15"/><text x="328" y="74" text-anchor="middle">1</text><circle class="b" cx="328" cy="150" r="15"/><text x="328" y="154" text-anchor="middle">2</text><path class="arr" d="M133 70 L313 70 M306.7 73 L313 70 L306.7 67"/><path class="arr" d="M133 74 L313 146 M306 146.5 L313 146 L308.3 140.8"/><path class="arr" d="M133 146 L313 74 M308.3 79.2 L313 74 L306 73.5"/><path class="arr" d="M133 150 L313 150 M306.7 153 L313 150 L306.7 147"/><text x="223" y="62" text-anchor="middle" class="cap">W₁,₁ = 0.9</text><text x="223" y="172" text-anchor="middle" class="cap">W₂,₂ = 0.8</text><text x="185" y="97" text-anchor="middle" class="cap lbl">W₁,₂ = 0.2</text><text x="185" y="132" text-anchor="middle" class="cap lbl">W₂,₁ = 0.3</text><path class="arr" d="M356 70 L420 70 M413.7 73 L420 70 L413.7 67"/><path class="arr" d="M356 150 L420 150 M413.7 153 L420 150 L413.7 147"/><text x="428" y="74" text-anchor="start">y₁</text><text x="428" y="154" text-anchor="start">y₂</text><text x="118" y="30" text-anchor="middle" class="cap">input layer</text><text x="328" y="30" text-anchor="middle" class="cap">output layer</text></svg></figure>
+<p>Let's assign weights as W<sub>1,1</sub> = 0.9, W<sub>1,2</sub> = 0.2, W<sub>2,1</sub> = 0.3, W<sub>2,2</sub> = 0.8, and our inputs are 1 and 0.5.</p>
+<p><strong>Node 1 in layer 2:</strong></p>
+<div class="eq">x = (0.9)(1) + (0.3)(0.5) = 1.05</div>
+<div class="eq">y<sub>1</sub> = <span class="frac"><span>1</span><span>1 + e<sup>−x</sup></span></span> = <span class="frac"><span>1</span><span>1 + e<sup>−1.05</sup></span></span> = 0.7408</div>
+<p><strong>Node 2 in layer 2:</strong></p>
+<div class="eq">x = (0.2)(1) + (0.8)(0.5) = 0.6</div>
+<div class="eq">y<sub>2</sub> = <span class="frac"><span>1</span><span>1 + e<sup>−0.6</sup></span></span> = 0.6457</div>
+<p>∴ y<sub>1</sub> = 0.7408 and y<sub>2</sub> = 0.6457</p>
+
+</section>
+<section id="forward-pass-matrices">
+<h2>The Same Forward Pass with Matrices</h2>
+<p>We could have used matrices to do the above calculations:</p>
+<div class="eq"><table class="mat"><tr><td>W<sub>1,1</sub></td><td>W<sub>2,1</sub></td></tr><tr><td>W<sub>1,2</sub></td><td>W<sub>2,2</sub></td></tr></table> <table class="mat"><tr><td>input_1</td></tr><tr><td>input_2</td></tr></table> = <table class="mat"><tr><td>x<sub>output_1</sub></td></tr><tr><td>x<sub>output_2</sub></td></tr></table></div>
+<div class="eq">x<sub>output_1</sub> = W<sub>1,1</sub> · input_1 + W<sub>2,1</sub> · input_2<br>x<sub>output_2</sub> = W<sub>1,2</sub> · input_1 + W<sub>2,2</sub> · input_2</div>
+<p>And then pass x<sub>1</sub> and x<sub>2</sub> into y = 1/(1 + e<sup>−x</sup>) to get output_1 and output_2. So:</p>
+<div class="eq">X = W · I<br>O = sigmoid(X)</div>
+<p>Input layer 1 → hidden layer 2 → output layer 3.</p>
+<p><strong>★ You have to apply the sigmoid function for every layer except the input layer, not just the last one.</strong></p>
+
+</section>
+<section id="backpropagation">
+<h2>Backpropagation: Splitting the Error</h2>
+<p>Previously it was very simple to refine a simple linear classifier, as it only had one node. But what if there are more than one? What we do is split the error with respect to the weights: the more the weight, the more it contributes towards the error.</p>
+<figure class="diagram"><svg viewBox="0 0 450 200" role="img" aria-label="the output error is split between two incoming weights in proportion 3 to 1"><circle class="b" cx="70" cy="50" r="16"/><text x="70" y="54" text-anchor="middle">1</text><circle class="b" cx="70" cy="160" r="16"/><text x="70" y="164" text-anchor="middle">2</text><circle class="b" cx="230" cy="105" r="16"/><text x="230" y="109" text-anchor="middle">1</text><path class="arr" d="M86 55 L213 99 M206 99.8 L213 99 L208 94.1"/><path class="arr" d="M86 156 L213 111 M208.1 116 L213 111 L206 110.2"/><text x="100" y="86" text-anchor="start" class="cap">W₁,₁ = 3</text><text x="100" y="134" text-anchor="start" class="cap">W₂,₁ = 1</text><path class="arr dash" d="M222 88 L92 37 M99 36.5 L92 37 L96.8 42.1"/><path class="arr dash" d="M222 122 L92 175 M96.7 169.8 L92 175 L99 175.4"/><text x="175" y="56" text-anchor="middle" class="cap">¾ error</text><text x="175" y="160" text-anchor="middle" class="cap">¼ error</text><path class="arr" d="M248 105 L320 105 M313.7 108 L320 105 L313.7 102"/><text x="326" y="109" text-anchor="start">output error</text></svg></figure>
+<p>We use weights to propagate signals forward and to propagate the error backwards from the output back through the network. This is why it is called <u>backpropagation</u>.</p>
+<p>Neural networks learn by refining their link weights. This is guided by the error, i.e. the difference between the right answer given by the training data and their actual output.</p>
+<figure class="diagram"><svg viewBox="0 0 640 215" role="img" aria-label="error flowing backwards from the output layer to the hidden layer"><path class="arr" d="M15 70 L62 70 M55.7 73 L62 70 L55.7 67"/><path class="arr" d="M15 160 L62 160 M55.7 163 L62 160 L55.7 157"/><path class="b" d="M96 70 L234 70"/><path class="b" d="M96 160 L234 70"/><path class="b" d="M96 70 L234 160"/><path class="b" d="M96 160 L234 160"/><circle class="b" cx="80" cy="70" r="16"/><text x="80" y="74" text-anchor="middle">1</text><circle class="b" cx="80" cy="160" r="16"/><text x="80" y="164" text-anchor="middle">2</text><circle class="b" cx="250" cy="70" r="16"/><text x="250" y="74" text-anchor="middle">1</text><circle class="b" cx="250" cy="160" r="16"/><text x="250" y="164" text-anchor="middle">2</text><circle class="b" cx="420" cy="70" r="16"/><text x="420" y="74" text-anchor="middle">1</text><circle class="b" cx="420" cy="160" r="16"/><text x="420" y="164" text-anchor="middle">2</text><path class="arr" d="M266 70 L402 70 M395.7 73 L402 70 L395.7 67"/><path class="arr" d="M266 70 L402 152 M395 151.4 L402 152 L398.2 146.1"/><path class="arr" d="M266 160 L402 78 M398.2 83.9 L402 78 L395 78.6"/><path class="arr" d="M266 160 L402 160 M395.7 163 L402 160 L395.7 157"/><text x="335" y="62" text-anchor="middle" class="cap">W₁,₁</text><text x="300" y="118" text-anchor="end" class="cap">W₁,₂</text><text x="372" y="118" text-anchor="start" class="cap">W₂,₁</text><text x="335" y="180" text-anchor="middle" class="cap">W₂,₂</text><path class="arr" d="M440 70 L500 70 M493.7 73 L500 70 L493.7 67"/><path class="arr" d="M440 160 L500 160 M493.7 163 L500 160 L493.7 157"/><text x="508" y="74" text-anchor="start">e<tspan baseline-shift="sub" font-size="9">output,1</tspan></text><text x="508" y="164" text-anchor="start">e<tspan baseline-shift="sub" font-size="9">output,2</tspan></text><text x="250" y="40" text-anchor="middle">e<tspan baseline-shift="sub" font-size="9">hidden,1</tspan></text><text x="80" y="22" text-anchor="middle" class="cap">input layer</text><text x="250" y="205" text-anchor="middle" class="cap">hidden layer</text><text x="420" y="205" text-anchor="middle" class="cap">output layer</text></svg></figure>
+<div class="eq">e<sub>hidden,1</sub> = <span class="frac"><span>W<sub>1,1</sub></span><span>W<sub>1,1</sub> + W<sub>1,2</sub></span></span> × e<sub>output,1</sub> + <span class="frac"><span>W<sub>1,2</sub></span><span>W<sub>1,1</sub> + W<sub>1,2</sub></span></span> × e<sub>output,2</sub></div>
+<p>And we work backwards to find the rest of the errors.</p>
+
+</section>
+<section id="backpropagation-matrices">
+<h2>Backpropagating with Matrices</h2>
+<div class="eq">error<sub>output</sub> = <table class="mat"><tr><td>e<sub>1</sub></td></tr><tr><td>e<sub>2</sub></td></tr></table></div>
+<div class="eq">error<sub>hidden</sub> = <table class="mat"><tr><td>e<sub>1</sub>·W<sub>1,1</sub> + e<sub>2</sub>·W<sub>1,2</sub></td></tr><tr><td>e<sub>1</sub>·W<sub>2,1</sub> + e<sub>2</sub>·W<sub>2,2</sub></td></tr></table></div>
+<div class="eq">error<sub>hidden</sub> = <table class="mat"><tr><td>W<sub>1,1</sub></td><td>W<sub>1,2</sub></td></tr><tr><td>W<sub>2,1</sub></td><td>W<sub>2,2</sub></td></tr></table> <table class="mat"><tr><td>e<sub>1</sub></td></tr><tr><td>e<sub>2</sub></td></tr></table></div>
+<p>∴</p>
+<div class="eq">error<sub>hidden</sub> = W<sup>T</sup><sub>hidden_output</sub> · error<sub>output</sub></div>
+
+</section>
+<section id="gradient-descent">
+<h2>Gradient Descent and the Error Function</h2>
+<p><strong>Gradient descent:</strong> after you have taken a step, you look again at the surrounding area to see which direction takes you closer to your objective, and then you step again in that direction. You keep doing this until you're happy you've arrived at the bottom.</p>
+<figure class="diagram"><svg viewBox="0 0 380 210" role="img" aria-label="stepping downhill towards the minimum of the error"><path class="arr" d="M30 185 L350 185 M343.7 188 L350 185 L343.7 182"/><path class="arr" d="M30 185 L30 20 M33 26.3 L30 20 L27 26.3"/><text x="30" y="14" text-anchor="middle">error</text><text x="350" y="200" text-anchor="end">weight</text><path class="ln" d="M40 68.8 L50 81.8 L60 94 L70 105.2 L80 115.6 L90 125 L100 133.6 L110 141.2 L120 147.9 L130 153.8 L140 158.8 L150 162.8 L160 165.9 L170 168.2 L180 169.6 L190 170 L200 169.6 L210 168.2 L220 165.9 L230 162.8 L240 158.8 L250 153.8 L260 147.9 L270 141.2 L280 133.6 L290 125 L300 115.6 L310 105.2 L320 94 L330 81.8 L340 68.8"/><circle class="pt" cx="60" cy="94" r="4"/><circle class="pt" cx="110" cy="141.2" r="4"/><circle class="pt" cx="150" cy="162.8" r="4"/><circle class="pt" cx="175" cy="169" r="4"/><circle class="pt" cx="188" cy="170" r="4"/><path class="arr dash" d="M63 96 L107 139.2 M100.4 137 L107 139.2 L104.6 132.6"/><path class="arr dash" d="M113 143.2 L147 160.8 M140 160.6 L147 160.8 L142.8 155.2"/><path class="arr dash" d="M153 164.8 L172 167 M165.4 169.3 L172 167 L166.1 163.2"/><path class="arr dash" d="M178 171 L185 168 M180.4 173.3 L185 168 L178 167.7"/><text x="70" y="66" text-anchor="start" class="cap">start</text><text x="250" y="168" text-anchor="start" class="cap">bottom: error is smallest</text></svg></figure>
+<p>Now we need to find an error function. The simplest one can be (target − actual), but there is a problem with that:</p>
+<div class="eq">node 1 → e<sub>1</sub> = 0.1<br>node 2 → e<sub>2</sub> = −0.1<br>total error = e<sub>1</sub> + e<sub>2</sub> = 0</div>
+<p>It shows no error even though there is an error.</p>
+<p>So our next option is |target − actual| or (target − actual)². We don't use |target − actual| as |x| is discontinuous around the minimum point, so to avoid that we use (target − actual)². The x² function is smooth and always continuous.</p>
+<figure class="diagram"><svg viewBox="0 0 520 195" role="img" aria-label="absolute error has a corner at zero, squared error is smooth"><path class="arr" d="M20 140 L240 140 M233.7 143 L240 140 L233.7 137"/><path class="arr" d="M130 150 L130 15 M133 21.3 L130 15 L127 21.3"/><path class="ln" d="M30 35 L130 135 L230 35"/><circle class="pt" cx="130" cy="135" r="4"/><text x="130" y="168" text-anchor="middle">|target − actual|</text><text x="130" y="183" text-anchor="middle" class="cap">sharp corner at the minimum</text><path class="arr" d="M280 140 L500 140 M493.7 143 L500 140 L493.7 137"/><path class="arr" d="M390 150 L390 15 M393 21.3 L390 15 L387 21.3"/><path class="ln" d="M290 35 L295 44.8 L300 54 L305 62.8 L310 71 L315 78.8 L320 86 L325 92.8 L330 99 L335 104.8 L340 110 L345 114.8 L350 119 L355 122.8 L360 126 L365 128.8 L370 131 L375 132.8 L380 134 L385 134.8 L390 135 L395 134.8 L400 134 L405 132.8 L410 131 L415 128.8 L420 126 L425 122.8 L430 119 L435 114.8 L440 110 L445 104.8 L450 99 L455 92.8 L460 86 L465 78.8 L470 71 L475 62.8 L480 54 L485 44.8 L490 35"/><circle class="pt" cx="390" cy="135" r="4"/><text x="390" y="168" text-anchor="middle">(target − actual)²</text><text x="390" y="183" text-anchor="middle" class="cap">smooth and continuous everywhere</text></svg></figure>
+
+</section>
+<section id="error-derivative">
+<h2>The Derivative of the Error</h2>
+<p>∂E/∂W<sub>j,k</sub> → how the error E changes as the weight W<sub>j,k</sub> changes.</p>
+<div class="eq">E = Σ<sub>n</sub> (t<sub>n</sub> − o<sub>n</sub>)²</div>
+<p>where o<sub>n</sub> is the output at node n and t<sub>n</sub> is a constant, the target value.</p>
+<p>But the error function doesn't need to sum over all the output nodes, so with E = (t<sub>k</sub> − o<sub>k</sub>)²:</p>
+<div class="eq"><span class="frac"><span>∂E</span><span>∂W<sub>j,k</sub></span></span> = <span class="frac"><span>∂</span><span>∂W<sub>j,k</sub></span></span> (t<sub>k</sub> − o<sub>k</sub>)²</div>
+<p>Now, by the chain rule:</p>
+<div class="eq"><span class="frac"><span>∂E</span><span>∂W<sub>j,k</sub></span></span> = <span class="frac"><span>∂E</span><span>∂o<sub>k</sub></span></span> × <span class="frac"><span>∂o<sub>k</sub></span><span>∂W<sub>j,k</sub></span></span> = −2(t<sub>k</sub> − o<sub>k</sub>) × <span class="frac"><span>∂o<sub>k</sub></span><span>∂W<sub>j,k</sub></span></span></div>
+<p>o<sub>k</sub> is the output of node k, which is the sigmoid applied to the weighted sum of the connected incoming signals, so:</p>
+<div class="eq"><span class="frac"><span>∂E</span><span>∂W<sub>j,k</sub></span></span> = −2(t<sub>k</sub> − o<sub>k</sub>) × <span class="frac"><span>∂</span><span>∂W<sub>j,k</sub></span></span> sigmoid(Σ<sub>j</sub> W<sub>j,k</sub> · o<sub>j</sub>)</div>
+<p>The derivative of the sigmoid is:</p>
+<div class="eq"><span class="frac"><span>∂</span><span>∂x</span></span> sigmoid(x) = sigmoid(x) · [1 − sigmoid(x)]</div>
+<div class="eq"><span class="frac"><span>∂E</span><span>∂W<sub>j,k</sub></span></span> = −2(t<sub>k</sub> − o<sub>k</sub>) × sigmoid(Σ<sub>j</sub> W<sub>j,k</sub> · o<sub>j</sub>) · [1 − sigmoid(Σ<sub>j</sub> W<sub>j,k</sub> · o<sub>j</sub>)] · o<sub>j</sub></div>
+<p>We can forget about the 2 as it won't change much, so:</p>
+<div class="eq"><span class="frac"><span>∂E</span><span>∂W<sub>j,k</sub></span></span> = −(t<sub>k</sub> − o<sub>k</sub>) · sigmoid(Σ<sub>j</sub> W<sub>j,k</sub> · o<sub>j</sub>) · [1 − sigmoid(Σ<sub>j</sub> W<sub>j,k</sub> · o<sub>j</sub>)] · o<sub>j</sub></div>
+<p>or, writing the error as e<sub>j</sub>:</p>
+<div class="eq"><span class="frac"><span>∂E</span><span>∂W<sub>i,j</sub></span></span> = −e<sub>j</sub> · sigmoid(Σ<sub>i</sub> W<sub>i,j</sub> · o<sub>i</sub>) · [1 − sigmoid(Σ<sub>i</sub> W<sub>i,j</sub> · o<sub>i</sub>)] · o<sub>i</sub></div>
+<p>Thus:</p>
+<div class="eq">new W<sub>j,k</sub> = old W<sub>j,k</sub> − α · <span class="frac"><span>∂E</span><span>∂W<sub>j,k</sub></span></span></div>
+<p>α is the learning rate. It moderates the strength of these changes to make sure we don't overshoot.</p>
+<div class="eq">ΔW<sub>j,k</sub> = α · E<sub>k</sub> · sigmoid(O<sub>k</sub>) · [1 − sigmoid(O<sub>k</sub>)] · O<sub>j</sub><sup>T</sup></div>
+
+</section>
+<section id="saturation">
+<h2>Saturation</h2>
+<p>A neural network can be saturated if the inputs are very large, as the sigmoid becomes flat for large values, so the gradient almost vanishes. And if o<sub>j</sub> is too small, we can lose accuracy.</p>
+<figure class="diagram"><svg viewBox="0 0 300 190" role="img" aria-label="the sigmoid curve"><path class="arr" d="M10 150 L292 150 M285.7 153 L292 150 L285.7 147"/><path class="arr" d="M150 172 L150 18 M153 24.3 L150 18 L147 24.3"/><text x="144" y="16" text-anchor="end">output</text><text x="292" y="166" text-anchor="end">input</text><path class="b dash" d="M150 40 L290 40"/><text x="142" y="44" text-anchor="end">1</text><text x="142" y="99" text-anchor="end">0.5</text><path class="ln" d="M19.8 149.7 L24.1 149.7 L28.5 149.6 L32.8 149.5 L37.2 149.4 L41.5 149.3 L45.8 149.1 L50.2 148.9 L54.5 148.7 L58.9 148.4 L63.2 148 L67.5 147.6 L71.9 147.1 L76.2 146.4 L80.6 145.7 L84.9 144.8 L89.2 143.7 L93.6 142.4 L97.9 140.9 L102.3 139 L106.6 136.9 L110.9 134.4 L115.3 131.5 L119.6 128.2 L124 124.5 L128.3 120.4 L132.6 115.9 L137 111 L141.3 105.9 L145.7 100.5 L150 95 L154.3 89.5 L158.7 84.1 L163 79 L167.4 74.1 L171.7 69.6 L176 65.5 L180.4 61.8 L184.7 58.5 L189.1 55.6 L193.4 53.1 L197.7 51 L202.1 49.1 L206.4 47.6 L210.8 46.3 L215.1 45.2 L219.4 44.3 L223.8 43.6 L228.1 42.9 L232.5 42.4 L236.8 42 L241.1 41.6 L245.5 41.3 L249.8 41.1 L254.2 40.9 L258.5 40.7 L262.8 40.6 L267.2 40.5 L271.5 40.4 L275.9 40.3 L280.2 40.3"/><path class="hi2" d="M225.9 43.2 L226.9 43.1 L227.8 43 L228.7 42.9 L229.6 42.7 L230.5 42.6 L231.4 42.5 L232.3 42.4 L233.2 42.3 L234.1 42.2 L235 42.1 L235.9 42.1 L236.8 42 L237.7 41.9 L238.6 41.8 L239.5 41.7 L240.4 41.7 L241.3 41.6 L242.2 41.5 L243.1 41.5 L244 41.4 L244.9 41.4 L245.8 41.3 L246.7 41.3 L247.6 41.2 L248.6 41.2 L249.5 41.1 L250.4 41.1 L251.3 41 L252.2 41 L253.1 40.9 L254 40.9 L254.9 40.9 L255.8 40.8 L256.7 40.8 L257.6 40.8 L258.5 40.7 L259.4 40.7 L260.3 40.7 L261.2 40.7 L262.1 40.6 L263 40.6 L263.9 40.6 L264.8 40.6 L265.7 40.5 L266.6 40.5 L267.5 40.5 L268.4 40.5 L269.4 40.4 L270.3 40.4 L271.2 40.4 L272.1 40.4 L273 40.4 L273.9 40.4 L274.8 40.3 L275.7 40.3 L276.6 40.3 L277.5 40.3 L278.4 40.3 L279.3 40.3 L280.2 40.3"/><path class="hi2" d="M19.8 149.7 L20.7 149.7 L21.6 149.7 L22.5 149.7 L23.4 149.7 L24.3 149.7 L25.2 149.7 L26.1 149.6 L27 149.6 L27.9 149.6 L28.8 149.6 L29.7 149.6 L30.7 149.6 L31.6 149.5 L32.5 149.5 L33.4 149.5 L34.3 149.5 L35.2 149.4 L36.1 149.4 L37 149.4 L37.9 149.4 L38.8 149.3 L39.7 149.3 L40.6 149.3 L41.5 149.3 L42.4 149.2 L43.3 149.2 L44.2 149.2 L45.1 149.1 L46 149.1 L46.9 149.1 L47.8 149 L48.7 149 L49.6 148.9 L50.5 148.9 L51.4 148.8 L52.4 148.8 L53.3 148.7 L54.2 148.7 L55.1 148.6 L56 148.6 L56.9 148.5 L57.8 148.5 L58.7 148.4 L59.6 148.3 L60.5 148.3 L61.4 148.2 L62.3 148.1 L63.2 148 L64.1 147.9 L65 147.9 L65.9 147.8 L66.8 147.7 L67.7 147.6 L68.6 147.5 L69.5 147.4 L70.4 147.3 L71.3 147.1 L72.2 147 L73.1 146.9 L74 146.8"/><text x="232" y="28" text-anchor="middle" class="cap">flat: tiny gradient</text><text x="68" y="128" text-anchor="middle" class="cap">flat</text></svg></figure>
+
+</section>
+<section id="activation-and-relu">
+<h2>Why Activation Functions, and ReLU</h2>
+<p>If we had no activation function at all, then the whole network would just collapse into a single linear transformation no matter how many layers there are. So the network could only model linear functions, not complex non-linear data.</p>
+<p>ReLU is the rectified linear unit activation function, where:</p>
+<div class="eq">ReLU(x) = x, x ≥ 0<br>ReLU(x) = 0, x &lt; 0</div>
+<figure class="diagram"><svg viewBox="0 0 300 170" role="img" aria-label="ReLU outputs zero for negative inputs and x otherwise"><path class="arr" d="M20 140 L285 140 M278.7 143 L285 140 L278.7 137"/><path class="arr" d="M150 160 L150 15 M153 21.3 L150 15 L147 21.3"/><path class="ln" d="M30 140 L150 140 L265 25"/><text x="232" y="45" text-anchor="end">ReLU(x)</text><text x="150" y="10" text-anchor="middle">output</text><text x="285" y="158" text-anchor="end">input</text><text x="90" y="130" text-anchor="middle" class="cap">0 for x < 0</text><text x="215" y="105" text-anchor="start" class="cap">x for x ≥ 0</text></svg></figure>
+<p>This non-linearity is enough for networks to learn complex patterns. It is preferred over sigmoid when you want fast training and good gradient flow.</p>
+
+</section>
+<section id="cross-entropy">
+<h2>Cross-Entropy</h2>
+<p>Cross-entropy measures how wrong the predicted probabilities are. It takes the −log(probability for the true class). Lower loss means higher confidence in the correct class.</p>
+<div class="eq">loss = −log(p<sub>true class</sub>)</div>
+
+</section>
+</main>
+<footer>
+  <span>© 2026 Krrish Bhasin</span>
+</footer>
+</div>
+</body>
+</html>

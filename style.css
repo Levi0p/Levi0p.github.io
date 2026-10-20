@@ -137,3 +137,15 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border
 .cmp th:first-child { width: 16%; }
 .cmp th:nth-child(2) { width: auto; }
 .cmp td:nth-child(2) { color: var(--text); font-weight: 400; }
+
+/* equations */
+.eq { background: var(--code-bg); padding: 0.7rem 1rem; border-radius: 4px; margin: 0 0 1rem; font-family: var(--serif); font-size: 1rem; line-height: 2; text-align: center; overflow-x: auto; }
+.frac { display: inline-block; vertical-align: middle; text-align: center; margin: 0 0.15em; line-height: 1.4; }
+.frac > span { display: block; padding: 0 0.25em; }
+.frac > span:first-child { border-bottom: 1px solid currentColor; }
+.mat { display: inline-table; vertical-align: middle; border-left: 1px solid currentColor; border-right: 1px solid currentColor; border-radius: 6px; padding: 0 0.3em; border-collapse: separate; border-spacing: 0.7em 0; line-height: 1.6; }
+.mat td { padding: 0; }
+.diagram .dash { stroke-dasharray: 5 4; }
+.diagram .thin { stroke-width: 0.7; }
+.diagram .solid { fill: var(--bg); }
+.diagram .lbl { paint-order: stroke; stroke: var(--bg); stroke-width: 4px; stroke-linejoin: round; }
