@@ -33,12 +33,12 @@
 </div>
 <h2>Projects</h2>
 <div class="entry">
-<h3>AlphaZero for Hex, from scratch</h3>
+<h3>AlphaZero vs. an Olympiad Champion: Self-Taught Hex on a Laptop</h3>
 <p class="sub">Python, JAX, Flax</p>
 <ul>
-<li>Built AlphaZero from scratch in JAX (batched MCTS, policy/value network, self-play) and trained it on a MacBook Air CPU, following Andy Jones's <i>Scaling Scaling Laws with Board Games</i>.</li>
-<li>Tested against MoHex 2.0, a former Computer Olympiad champion, with its exact solver as referee: perfect on 3x3, wins every 5x5 opening it should, and keeps the win in 99.2% of solver-checked 7x7 positions.</li>
-<li>Found that self-play never practised unusual openings; random first moves took 5x5 from 21/25 to 25/25 openings won.</li>
+<li>Built AlphaZero in JAX (batched MCTS, policy/value network, self-play) and let it teach itself Hex from zero on a MacBook Air: no human games, no GPU. Inspired by Andy Jones's <i>Scaling Scaling Laws with Board Games</i>.</li>
+<li>Put it up against MoHex 2.0, a Computer Olympiad champion, with MoHex's exact solver as referee: proven perfect on 3x3, wins every 5x5 opening it should, and holds the win in 99.2% of solver-checked 7x7 positions.</li>
+<li>Tracked down why it kept losing four 5x5 openings no matter how long it trained (self-play never visited them); random first moves took it from 21/25 to a perfect 25/25.</li>
 </ul>
 <p><a href="hex/">play against it</a> · <a href="https://github.com/Levi0p/hex-alphazero">github.com/Levi0p/hex-alphazero</a></p>
 </div>
