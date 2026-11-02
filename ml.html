@@ -38,7 +38,7 @@
 <ul>
 <li>Implemented AlphaZero in JAX with a fully JIT-compiled, vmap-batched MCTS that runs 256 self-play games in parallel (one batched network call per simulation), training a residual policy/value network on a MacBook Air CPU.</li>
 <li>Matched MoHex 2.0 (Computer Olympiad champion) on all 25 winnable 5x5 openings and kept the win in 99.2% (768/774) of 7x7 positions, verified move by move with MoHex's depth-first proof-number solver.</li>
-<li>Reproduced the train-time vs. test-time compute trade-off from Jones (2021): with 256 MCTS simulations, the agent reached perfect 5x5 play with 2.5x less training than the raw network.</li>
+<li>Reproduced the train-time vs. test-time compute trade-off from Jones (2021): with 256 MCTS simulations, the agent won all 25 winnable 5x5 openings with 2.5x less training than the raw network.</li>
 </ul>
 <p><a href="hex/">play against it</a> · <a href="https://github.com/Levi0p/hex-alphazero">github.com/Levi0p/hex-alphazero</a></p>
 </div>
