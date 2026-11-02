@@ -36,9 +36,9 @@
 <h3>AlphaZero for Hex</h3>
 <p class="sub">Python, JAX, Flax</p>
 <ul>
-<li>Built AlphaZero in JAX (MCTS, a policy/value network and self-play) and trained it on my MacBook Air, based on Andy Jones's <i>Scaling Scaling Laws with Board Games</i>.</li>
-<li>Tested it against MoHex 2.0, a Computer Olympiad champion, using MoHex's solver to check every move: it plays 3x3 perfectly, wins every 5x5 opening it should, and keeps the win in 99.2% of 7x7 positions.</li>
-<li>It kept losing four 5x5 openings because self-play never tried them. Starting half the games with a random move fixed it (21/25 to 25/25).</li>
+<li>Implemented AlphaZero in JAX with a fully JIT-compiled, vmap-batched MCTS that runs 256 self-play games in parallel (one batched network call per simulation), training a residual policy/value network on a MacBook Air CPU.</li>
+<li>Matched MoHex 2.0 (Computer Olympiad champion) on all 25 winnable 5x5 openings and kept the win in 99.2% (768/774) of 7x7 positions, verified move by move with MoHex's depth-first proof-number solver.</li>
+<li>Reproduced the train-time vs. test-time compute trade-off from Jones (2021): with 256 MCTS simulations, the agent reached perfect 5x5 play with 2.5x less training than the raw network.</li>
 </ul>
 <p><a href="hex/">play against it</a> · <a href="https://github.com/Levi0p/hex-alphazero">github.com/Levi0p/hex-alphazero</a></p>
 </div>
