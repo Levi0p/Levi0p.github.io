@@ -149,3 +149,10 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border
 .diagram .thin { stroke-width: 0.7; }
 .diagram .solid { fill: var(--bg); }
 .diagram .lbl { paint-order: stroke; stroke: var(--bg); stroke-width: 4px; stroke-linejoin: round; }
+
+/* hex card (reuses the k-means card and controls) */
+.hx svg { width: 100%; max-width: 560px; height: auto; display: block; margin: 0 auto; }
+.hxcell { transition: fill .12s; }
+.hxcell.open { cursor: pointer; }
+.hxcell.open:hover { fill: var(--border); }
+#hxinfo { color: var(--dim); width: 100%; margin-top: 0.2rem; }
