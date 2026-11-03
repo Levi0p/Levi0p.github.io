@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep RL Part 1: Imitation Learning - Krrish Bhasin</title>
+<meta name="description" content="What rl is, states vs observations, why copying an expert drifts, DAgger, multimodal actions and diffusion policies.">
+<link rel="stylesheet" href="style.css?v=11">
+</head>
+<body class="notes">
+<div class="page">
+<header>
+  <a class="brand" href="index.html">Krrish Bhasin</a>
+  <nav>
+    <a href="index.html">home</a>
+    <a href="ml.html">machine learning</a>
+    <a href="garden.html" class="active">garden</a>
+    <a href="horror.html">horror</a>
+  </nav>
+</header>
+<main>
+<p class="crumb"><a href="garden.html">&larr; garden</a></p>
+<h1>Deep RL Part 1: Imitation Learning</h1>
+<p class="postmeta">CS285 lecture 2 · behavioural cloning, DAgger, diffusion policies · my notes</p>
+<details class="toc" open><summary>contents</summary><ol>
+<li><a href="#what-rl-is">What RL Even Is</a></li>
+<li><a href="#states-and-observations">States vs Observations</a></li>
+<li><a href="#behavioural-cloning">Behavioural Cloning and Why It Drifts</a></li>
+<li><a href="#making-cloning-work">Making Cloning Work: Recoveries and DAgger</a></li>
+<li><a href="#why-we-fail-to-fit">Why We Might Fail to Fit the Expert</a></li>
+<li><a href="#expressive-distributions">Expressive Action Distributions</a></li>
+<li><a href="#beyond-imitation">Going Beyond Just Imitation</a></li>
+</ol></details>
+<section id="what-rl-is">
+<h2>What RL Even Is</h2>
+<p>So the whole setup is that we are given a state and we perform some action in an environment and based on that we either get rewarded or we dont and then we move to the next state and this keeps going on and on, rl is basically one way of optimizing this loop so that over time we pick the actions that get us the most reward</p>
+<p>The reason this matters is that data without optimization doesnt let us solve problems in new ways coz all we can do is copy whatever is already in the data and optimization without data is really hard to apply to the real world coz we have no idea what the world actually looks like so we kind of need both and rl is where they meet</p>
+</section>
+<section id="states-and-observations">
+<h2>States vs Observations</h2>
+<p>Quick notation first coz it shows up everywhere, s<sub>t</sub> is the state, o<sub>t</sub> is the observation, a<sub>t</sub> is the action and the policy is π<sub>θ</sub>(a<sub>t</sub> | o<sub>t</sub>) which is just a neural net with params θ that takes in what it sees and gives a distribution over actions and if it gets the full state instead we write π<sub>θ</sub>(a<sub>t</sub> | s<sub>t</sub>) and call it fully observed</p>
+<p>The difference between the two is that the state is the thing that tells you everything you need to know about the world right now and the observation is just what you happen to see, like a picture of a tiger is an observation but the state would be the tiger's exact position and speed and everything else, so you can always get an observation from the state but not always get the state back from an observation, observations are basically insufficient states</p>
+<p>This matters coz the world moves state to state using p(s<sub>t+1</sub> | s<sub>t</sub>, a<sub>t</sub>) and the state has the markov property ie once you know s<sub>t</sub> the past doesnt matter anymore, but observations dont have that so some algos can make decisions just from the current observation and some need the history of previous ones too</p>
+</section>
+<section id="behavioural-cloning">
+<h2>Behavioural Cloning and Why It Drifts</h2>
+<p>The simplest idea is to just copy an expert, we take a human driving, record what they see o<sub>t</sub> and what they do a<sub>t</sub>, throw it in as training data and do normal supervised learning to get π<sub>θ</sub>(a<sub>t</sub> | o<sub>t</sub>) and this is called behavioural cloning</p>
+<p>Usually the reason this doesnt work well is that even if you have a decent policy from supervised training the moment it makes one small mistake it ends up in a situation that it never saw in the training data coz the expert never made that mistake and so in that new situation it might not work well and it makes another mistake and the mistakes keep on piling up and the trajectory drifts further and further away from what the expert did</p>
+<figure class="diagram"><svg viewBox="0 0 520 190" role="img" aria-label="the learned trajectory drifts away from the training trajectory over time"><path class="arr" d="M40 160 L490 160 M483.7 163 L490 160 L483.7 157"/><text x="496" y="164">t</text><path class="ln" d="M40 120 C140 112 240 128 340 116 S 460 120 480 118"/><path class="ln dash" d="M40 120 C120 112 170 120 230 100 S 380 50 470 30"/><text x="476" y="122" class="cap">training trajectory</text><text x="400" y="26" class="cap">what the policy does</text><text x="260" y="182" text-anchor="middle" class="cap">small errors put you in unseen states and the errors compound</text></svg></figure>
+<p>To make this precise say the cost is 0 if we took the expert's action and 1 otherwise and we assume our policy makes a mistake with probability at most ε on any state it saw in training, then the expected total number of mistakes over T steps is</p>
+<div class="eq">E[ Σ<sub>t</sub> c(s<sub>t</sub>, a<sub>t</sub>) ] ≤ εT + (1 − ε)(ε(T − 1) + (1 − ε)(…)) ~ O(εT<sup>2</sup>)</div>
+<p>The reason it is T<sup>2</sup> and not T is that one mistake early on throws you off the training distribution for the whole rest of the episode so you have T terms each of size O(εT), it is like walking a tightrope where one wrong step and you are just gone</p>
+<p>The more general version doesnt even need the states to be exactly in the training set, if s is drawn from p<sub>train</sub>(s) then the state distribution of our policy is</p>
+<div class="eq">p<sub>θ</sub>(s<sub>t</sub>) = (1 − ε)<sup>t</sup> p<sub>train</sub>(s<sub>t</sub>) + (1 − (1 − ε)<sup>t</sup>) p<sub>mistake</sub>(s<sub>t</sub>)</div>
+<p>where the first part is the probability we made no mistakes so far and the second part is some other distribution we know nothing about, and using the identity (1 − ε)<sup>t</sup> ≥ 1 − εt we get |p<sub>θ</sub>(s<sub>t</sub>) − p<sub>train</sub>(s<sub>t</sub>)| ≤ 2εt and summing the cost over all t again gives O(εT<sup>2</sup>), keep this exact trick in mind coz it comes back in part 5 when we bound how much a new policy drifts from an old one</p>
+</section>
+<section id="making-cloning-work">
+<h2>Making Cloning Work: Recoveries and DAgger</h2>
+<p>Imitation learning actually works a lot better if the data has more mistakes and recoveries in it coz then the policy has seen what to do after it messes up, the classic example is the self driving car with three cameras, one pointing forward, one to the left and one to the right, and the trick is that if the car were to drift right when it should go straight the images it would see would look like what the right camera sees and that camera's images are labelled with turn left so the car learns to correct itself</p>
+<p>A cleaner fix is DAgger which stands for dataset aggregation, the problem was that p<sub>data</sub>(o<sub>t</sub>) is not equal to p<sub>π<sub>θ</sub></sub>(o<sub>t</sub>) and instead of being clever about the policy we get clever about the data ie we just collect training data from the policy's own distribution</p>
+<div class="eq">1. train π<sub>θ</sub>(a<sub>t</sub> | o<sub>t</sub>) on human data D<br>2. run π<sub>θ</sub> to get a new dataset D<sub>π</sub> = {o<sub>1</sub>, …, o<sub>M</sub>}<br>3. ask a human to label D<sub>π</sub> with actions a<sub>t</sub><br>4. aggregate D ← D ∪ D<sub>π</sub> and repeat</div>
+<p>Eventually the data covers the states our policy actually visits so the drift problem goes away and the error becomes linear in T, the annoying part is step 3 coz you need a human to keep labelling stuff which is not always realistic</p>
+</section>
+<section id="why-we-fail-to-fit">
+<h2>Why We Might Fail to Fit the Expert</h2>
+<p>Even with good data a policy can just fail to match the expert and there are two big reasons</p>
+<p>Non markovian behaviour is when the expert doesnt make decisions based only on the current state, a human driver is reacting to what happened a few seconds ago too, so a policy that only looks at the current observation cant fully copy them</p>
+<p>Multimodal behaviour is when the expert's actions are kind of random and the distribution over actions is complex, like if there is a tree in front of you going left is fine and going right is fine but if your network outputs a single gaussian it will average the two and go straight into the tree</p>
+</section>
+<section id="expressive-distributions">
+<h2>Expressive Action Distributions</h2>
+<p>So to deal with multimodal behaviour we need the policy to output something richer than a single gaussian and there are a few ways to do it, a mixture of gaussians, latent variable models and diffusion models</p>
+<p>Diffusion models generate new data like images by learning to reverse a gradual noising process, during training we start with a real image x<sub>0</sub> and keep adding noise until it becomes basically pure noise x<sub>T</sub> and a neural net learns to predict the noise at each step so we can remove it bit by bit</p>
+<div class="eq">x<sub>i+1</sub> = x<sub>i</sub> + noise &nbsp;&nbsp;&nbsp; f(x<sub>i</sub>) = noise &nbsp;&nbsp;&nbsp; x<sub>i−1</sub> = x<sub>i</sub> − f(x<sub>i</sub>)</div>
+<p>To make something new we start with random noise and keep denoising until a realistic image appears, and in imitation learning the exact same idea works for actions ie start with noise and gradually turn it into a plausible action or a whole action sequence and since it can land on any of the modes it doesnt average left and right into the tree</p>
+<p>Another way is autoregressive discretization which predicts continuous actions by splitting each action dimension into discrete bins and predicting one dimension at a time, so a self driving car predicts steering first, then acceleration given the steering and then braking given both, with an LSTM or transformer handling the dependencies and the chain rule putting it all together</p>
+<div class="eq">p(a<sub>t,0</sub> | s<sub>t</sub>) p(a<sub>t,1</sub> | s<sub>t</sub>, a<sub>t,0</sub>) p(a<sub>t,2</sub> | s<sub>t</sub>, a<sub>t,0</sub>, a<sub>t,1</sub>) = p(a<sub>t</sub> | s<sub>t</sub>)</div>
+<p>The reason this helps is that each bin can hold multiple modes and later dimensions know what earlier ones picked so you dont get some unrealistic average action, the trade off is you lose some precision from binning and prediction is slower coz the parts are generated one after another</p>
+</section>
+<section id="beyond-imitation">
+<h2>Going Beyond Just Imitation</h2>
+<p>There is a neat trick where you dont even need an expert, you start with a random policy, collect data while trying to reach random goals and then treat that data as demonstrations for whatever goals you actually did reach, so even a failed attempt at reaching A is a perfect demo of how to reach wherever you ended up</p>
+<div class="eq">max<sub>θ</sub> E<sub>(s, a, g) ~ D</sub> log π<sub>θ</sub>(a | s, g)</div>
+<p>Then you use this relabelled data to improve the policy and repeat and the policy slowly gets better at reaching goals which is basically imitation learning turning into a weak form of rl, and that is a nice bridge into the next part</p>
+</section>
+<p class="crumb" style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:2.5rem"><span><a href="garden-rl2.html">part 2: rl basics and policy gradients &rarr;</a></span></p>
+
+</main>
+<footer>
+  <span>© 2026 Krrish Bhasin</span>
+</footer>
+</div>
+</body>
+</html>

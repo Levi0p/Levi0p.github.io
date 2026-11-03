@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep RL Part 5: Advanced Policy Gradients and Planning - Krrish Bhasin</title>
+<meta name="description" content="Policy gradient as policy iteration, bounding the distribution shift, KL constraints, natural gradient, open vs closed loop planning, CEM, MCTS and LQR.">
+<link rel="stylesheet" href="style.css?v=11">
+</head>
+<body class="notes">
+<div class="page">
+<header>
+  <a class="brand" href="index.html">Krrish Bhasin</a>
+  <nav>
+    <a href="index.html">home</a>
+    <a href="ml.html">machine learning</a>
+    <a href="garden.html" class="active">garden</a>
+    <a href="horror.html">horror</a>
+  </nav>
+</header>
+<main>
+<p class="crumb"><a href="garden.html">&larr; garden</a></p>
+<h1>Deep RL Part 5: Advanced Policy Gradients and Planning</h1>
+<p class="postmeta">CS285 lectures 9 and 10 · TRPO ideas, KL, MCTS, LQR · my notes</p>
+<details class="toc" open><summary>contents</summary><ol>
+<li><a href="#pg-as-policy-iteration">Policy Gradient as Policy Iteration</a></li>
+<li><a href="#distribution-mismatch">The Distribution Mismatch Problem</a></li>
+<li><a href="#bounding-the-change">Bounding the Distribution Change</a></li>
+<li><a href="#kl-divergence">KL Divergence and Enforcing the Constraint</a></li>
+<li><a href="#natural-gradient-again">Natural Gradient, Properly This Time</a></li>
+<li><a href="#model-based">Model Based RL and Planning</a></li>
+<li><a href="#open-closed-loop">Open Loop vs Closed Loop</a></li>
+<li><a href="#random-shooting-cem">Random Shooting and CEM</a></li>
+<li><a href="#mcts">Monte Carlo Tree Search</a></li>
+<li><a href="#lqr">Using Derivatives: LQR</a></li>
+<li><a href="#stochastic-and-ilqr">Stochastic Dynamics and Iterative LQR</a></li>
+</ol></details>
+<section id="pg-as-policy-iteration">
+<h2>Policy Gradient as Policy Iteration</h2>
+<p>Turns out policy gradient is really just a soft version of policy iteration from part 4, instead of jumping straight to the argmax policy it nudges the policy towards actions with high advantage, and there is a neat identity that makes this exact, for J(θ) = E<sub>τ ~ p<sub>θ</sub>(τ)</sub>[Σ<sub>t</sub> γ<sup>t</sup> r(s<sub>t</sub>, a<sub>t</sub>)] the improvement from old params θ to new params θ′ is</p>
+<div class="eq">J(θ′) − J(θ) = E<sub>τ ~ p<sub>θ′</sub>(τ)</sub> [ Σ<sub>t</sub> γ<sup>t</sup> A<sup>π<sub>θ</sub></sup>(s<sub>t</sub>, a<sub>t</sub>) ]</div>
+<p>The proof is short, J(θ) is just the expected V<sup>π<sub>θ</sub></sup>(s<sub>0</sub>) and the starting state distribution doesnt depend on the policy so we can take that expectation under p<sub>θ′</sub>(τ) instead, then write V(s<sub>0</sub>) as a telescoping sum Σ γ<sup>t</sup>V(s<sub>t</sub>) − Σ γ<sup>t</sup>V(s<sub>t+1</sub>) and combine it with the reward sum and every term turns into r + γV(s<sub>t+1</sub>) − V(s<sub>t</sub>) which is the advantage</p>
+<p>So the expectation is under the new policy but the advantage is under the old one, which is exactly what policy iteration does ie evaluate the old policy and pick a new one that does well under that evaluation</p>
+</section>
+<section id="distribution-mismatch">
+<h2>The Distribution Mismatch Problem</h2>
+<p>Using importance sampling on the actions we can rewrite it as</p>
+<div class="eq">Σ<sub>t</sub> E<sub>s<sub>t</sub> ~ p<sub>θ′</sub>(s<sub>t</sub>)</sub> [ E<sub>a<sub>t</sub> ~ π<sub>θ</sub>(a<sub>t</sub> | s<sub>t</sub>)</sub> [ (π<sub>θ′</sub>(a<sub>t</sub> | s<sub>t</sub>) / π<sub>θ</sub>(a<sub>t</sub> | s<sub>t</sub>)) γ<sup>t</sup> A<sup>π<sub>θ</sub></sup>(s<sub>t</sub>, a<sub>t</sub>) ] ]</div>
+<p>but the states still come from p<sub>θ′</sub>(s<sub>t</sub>) which we cant sample from, so the question is can we just use p<sub>θ</sub>(s<sub>t</sub>) instead, if we can then we get Ā(θ′) and we could just do θ′ ← argmax<sub>θ′</sub> Ā(θ′) and that would be the whole algorithm, plus if you take its gradient at θ = θ′ the ratio goes to 1 and you get exactly the normal policy gradient</p>
+<p>Basically you have a huge annoyance in rl, to know how good a new policy is you need data from that new policy but you dont have that data yet coz you havent run the new policy, so to cheat and make it work we use old data we already have and adjust for the difference with importance sampling, the catch is that this cheat only works if the new policy doesnt change too wildly from the old one and if you change too much everything breaks, which is exactly why modern algos like PPO force the policy to update in small safe baby steps</p>
+</section>
+<section id="bounding-the-change">
+<h2>Bounding the Distribution Change</h2>
+<p>The claim is that p<sub>θ</sub>(s<sub>t</sub>) is close to p<sub>θ′</sub>(s<sub>t</sub>) when π<sub>θ</sub> is close to π<sub>θ′</sub>, start with the simple case where π<sub>θ</sub> is deterministic and π<sub>θ′</sub> takes a different action with probability at most ε, and this is literally the same setup as the behavioural cloning analysis in part 1</p>
+<div class="eq">p<sub>θ′</sub>(s<sub>t</sub>) = (1 − ε)<sup>t</sup> p<sub>θ</sub>(s<sub>t</sub>) + (1 − (1 − ε)<sup>t</sup>) p<sub>mistake</sub>(s<sub>t</sub>)<br>|p<sub>θ′</sub>(s<sub>t</sub>) − p<sub>θ</sub>(s<sub>t</sub>)| ≤ 2(1 − (1 − ε)<sup>t</sup>) ≤ 2εt</div>
+<p>Not a great bound but a bound, for the general case where π<sub>θ</sub> is any distribution we say π<sub>θ′</sub> is close if |π<sub>θ′</sub>(a<sub>t</sub> | s<sub>t</sub>) − π<sub>θ</sub>(a<sub>t</sub> | s<sub>t</sub>)| ≤ ε for all s<sub>t</sub>, and a useful lemma says that if two distributions differ by ε in total then you can build a joint distribution where they agree with probability 1 − ε, so π<sub>θ′</sub> takes a different action than π<sub>θ</sub> with probability at most ε and the same 2εt bound holds</p>
+<p>Then for any function f the expectation under the new state distribution is at least the one under the old minus the error times the biggest possible value</p>
+<div class="eq">E<sub>p<sub>θ′</sub>(s<sub>t</sub>)</sub>[f(s<sub>t</sub>)] ≥ E<sub>p<sub>θ</sub>(s<sub>t</sub>)</sub>[f(s<sub>t</sub>)] − 2εt max<sub>s<sub>t</sub></sub> f(s<sub>t</sub>)</div>
+<p>so the real objective is at least Ā(θ′) minus Σ<sub>t</sub> 2εtC where C is O(Tr<sub>max</sub>) or O(r<sub>max</sub> / (1 − γ)), and maximizing Ā maximizes a lower bound on the thing we actually want, so</p>
+<div class="eq">θ′ ← argmax<sub>θ′</sub> Ā(θ′) &nbsp; such that &nbsp; |π<sub>θ′</sub>(a<sub>t</sub> | s<sub>t</sub>) − π<sub>θ</sub>(a<sub>t</sub> | s<sub>t</sub>)| ≤ ε</div>
+<p>and for small enough ε this is guaranteed to improve J(θ′) − J(θ)</p>
+</section>
+<section id="kl-divergence">
+<h2>KL Divergence and Enforcing the Constraint</h2>
+<p>KL divergence is a measure of how one probability distribution differs from a second reference one, in ml and rl it basically tells you the information lost or the distance between two distributions like how much a new policy or state distribution drifts away from the old one</p>
+<div class="eq">D<sub>KL</sub>(p<sub>1</sub>(x) || p<sub>2</sub>(x)) = E<sub>x ~ p<sub>1</sub>(x)</sub> [ log (p<sub>1</sub>(x) / p<sub>2</sub>(x)) ]</div>
+<p>The total variation constraint above is awkward to work with but it is bounded by KL</p>
+<div class="eq">|π<sub>θ′</sub>(a<sub>t</sub> | s<sub>t</sub>) − π<sub>θ</sub>(a<sub>t</sub> | s<sub>t</sub>)| ≤ √( ½ D<sub>KL</sub>(π<sub>θ′</sub>(a<sub>t</sub> | s<sub>t</sub>) || π<sub>θ</sub>(a<sub>t</sub> | s<sub>t</sub>)) )</div>
+<p>so constraining KL also bounds the state marginal difference and KL has really convenient properties that make it much easier to approximate, so the problem becomes maximize Ā(θ′) such that D<sub>KL</sub> ≤ ε</p>
+<p>One way to enforce that is to turn it into a Lagrangian</p>
+<div class="eq">L(θ′, λ) = Ā(θ′) − λ ( D<sub>KL</sub>(π<sub>θ′</sub>(a<sub>t</sub> | s<sub>t</sub>) || π<sub>θ</sub>(a<sub>t</sub> | s<sub>t</sub>)) − ε )<br>1. maximize L(θ′, λ) wrt θ′<br>2. λ ← λ + α ( D<sub>KL</sub>(π<sub>θ′</sub>(a<sub>t</sub> | s<sub>t</sub>) || π<sub>θ</sub>(a<sub>t</sub> | s<sub>t</sub>)) − ε )</div>
+<p>The intuition is raise λ if the constraint is violated too much and lower it otherwise and this is called dual gradient descent, PPO is basically a simpler cousin of this where you either add a KL penalty or just clip the ratio so the policy cant move too far</p>
+</section>
+<section id="natural-gradient-again">
+<h2>Natural Gradient, Properly This Time</h2>
+<p>Another way is to use a first order approximation, if we just take a small step then Ā(θ′) is basically linear so we maximize ∇<sub>θ</sub>Ā(θ)<sup>T</sup>(θ′ − θ) such that the KL ≤ ε, and when you evaluate ∇<sub>θ</sub>Ā at θ′ = θ the ratio cancels and it is exactly the normal policy gradient ∇<sub>θ</sub>J(θ)</p>
+<p>So can we just use the gradient then, the problem is normal gradient ascent θ ← θ + α∇<sub>θ</sub>J(θ) actually solves the problem with the constraint ||θ − θ′||<sup>2</sup> ≤ ε ie a circle in parameter space, which gives</p>
+<div class="eq">θ′ = θ + √( ε / ||∇<sub>θ</sub>J(θ)||<sup>2</sup> ) ∇<sub>θ</sub>J(θ)</div>
+<p>but some params change the probabilities a lot more than others so a circle in parameter space is the wrong shape, the KL constraint to second order is D<sub>KL</sub>(π<sub>θ′</sub> || π<sub>θ</sub>) ≈ ½ (θ′ − θ)<sup>T</sup> F (θ′ − θ) with F the Fisher information matrix so it is an ellipse, and solving with the ellipse gives the natural gradient</p>
+<div class="eq">θ′ = θ + α F<sup>−1</sup> ∇<sub>θ</sub>J(θ) &nbsp;&nbsp;&nbsp; α = √( 2ε / (∇<sub>θ</sub>J(θ)<sup>T</sup> F ∇<sub>θ</sub>J(θ)) )</div>
+<p>So to sum up, policy gradient is policy iteration, it optimizes the advantage under the new policy's state distribution, using the old state distribution optimizes a bound as long as the policies are close enough, which gives a constrained optimization problem, a first order approximation of the objective is gradient ascent and regular gradient ascent has the wrong constraint so we use the natural gradient and that is basically TRPO</p>
+</section>
+<section id="model-based">
+<h2>Model Based RL and Planning</h2>
+<p>All of the above we did without needing the transitions ie p(s<sub>t+1</sub> | s<sub>t</sub>, a<sub>t</sub>) was assumed to be unknown but from now on we will start working with them, and often knowing the dynamics makes things a lot easier, like in games or easily modelled systems or simulated environments, and all of this is called model based rl</p>
+<p>In the simplest version we know the transitions and based on that we pick actions, so it is choosing actions under perfect knowledge of the system dynamics and there isnt even a policy here, we just pick the best sequence of actions and this is called planning or trajectory optimization, like if there is a tiger the objective is literally</p>
+<div class="eq">min<sub>a<sub>1</sub>, …, a<sub>T</sub></sub> log p(eaten by tiger | a<sub>1</sub>, …, a<sub>T</sub>)</div>
+<p>or more generally minimize total cost subject to the dynamics</p>
+<div class="eq">min<sub>a<sub>1</sub>, …, a<sub>T</sub></sub> Σ<sub>t=1</sub><sup>T</sup> c(s<sub>t</sub>, a<sub>t</sub>) &nbsp; s.t. &nbsp; s<sub>t</sub> = f(s<sub>t−1</sub>, a<sub>t−1</sub>)</div>
+</section>
+<section id="open-closed-loop">
+<h2>Open Loop vs Closed Loop</h2>
+<p>In the deterministic case the robot gets s<sub>1</sub> from the world, thinks about the whole plan a<sub>1</sub>, …, a<sub>T</sub> in its head and then just executes it, and that is fine coz the world will do exactly what the model says</p>
+<div class="eq">a<sub>1</sub>, …, a<sub>T</sub> = argmax<sub>a<sub>1</sub>, …, a<sub>T</sub></sub> Σ<sub>t</sub> r(s<sub>t</sub>, a<sub>t</sub>) &nbsp; s.t. &nbsp; s<sub>t+1</sub> = f(s<sub>t</sub>, a<sub>t</sub>)</div>
+<p>In the stochastic open loop case we do the same thing but maximize the expected reward given the action sequence, and this is very suboptimal coz we are picking the whole set of actions ahead of time based only on the initial state, but since p(s<sub>t+1</sub> | s<sub>t</sub>, a<sub>t</sub>) has uncertainty we may land in different states than predicted and the errors accumulate, like a plan for an exam where you commit to every answer before seeing the questions</p>
+<p>Closed loop means the agent looks at the state at every step and acts on it a<sub>t</sub> ~ π(a<sub>t</sub> | s<sub>t</sub>) which is what a policy does, open loop means it commits to a plan without looking at what happens, so we generally prefer closed loop over open loop and in practice planning methods get around it by replanning every step</p>
+</section>
+<section id="random-shooting-cem">
+<h2>Random Shooting and CEM</h2>
+<p>Abstract away the control part and just call the whole thing A = argmax<sub>A</sub> J(A) where A is the sequence of actions and we dont care what J is, we can only evaluate it</p>
+<p>Stochastic optimization in its simplest form is guess and check also called the random shooting method, so try a<sub>1</sub>, a<sub>2</sub>, a<sub>3</sub> or a<sub>1</sub>, a<sub>4</sub>, a<sub>2</sub> or a<sub>5</sub>, a<sub>1</sub>, a<sub>3</sub> and check which is best through the simulator or model</p>
+<div class="eq">1. pick A<sub>1</sub>, …, A<sub>N</sub> from some distribution eg uniform<br>2. choose A<sub>i</sub> based on argmax<sub>i</sub> J(A<sub>i</sub>)</div>
+<p>It is very simple to implement and very fast coz we are just brute forcing and it parallelizes perfectly but it isnt very good, CEM does the same thing but improves the sampling distribution each round so it focuses on the good region</p>
+<div class="eq">1. sample A<sub>1</sub>, …, A<sub>N</sub> from p(A)<br>2. evaluate J(A<sub>1</sub>), …, J(A<sub>N</sub>)<br>3. pick the elites A<sub>i<sub>1</sub></sub>, …, A<sub>i<sub>M</sub></sub> with the highest value where M &lt; N<br>4. refit p(A) to the elites and repeat</div>
+<p>Both have a very harsh dimensionality limit and only do open loop planning, but CEM with like a gaussian is actually a really strong baseline for small problems</p>
+</section>
+<section id="mcts">
+<h2>Monte Carlo Tree Search</h2>
+<p>For discrete actions like in an Atari game we can build a tree where each branch is an action, but we cant search all the paths coz the tree grows exponentially so where do we search first, the intuition is choose nodes with the best reward but also prefer nodes we have rarely visited so we dont miss something good</p>
+<div class="eq">1. find a leaf s<sub>l</sub> using TreePolicy(s<sub>1</sub>)<br>2. evaluate the leaf using DefaultPolicy(s<sub>l</sub>)<br>3. update all values in the tree between s<sub>1</sub> and s<sub>l</sub><br>repeat and then take the best action from s<sub>1</sub></div>
+<p>The UCT tree policy is if s<sub>t</sub> isnt fully expanded try a new action, else pick the child with the best score</p>
+<div class="eq">Score(s<sub>t</sub>) = Q(s<sub>t</sub>) / N(s<sub>t</sub>) + 2C √( 2 ln N(s<sub>t−1</sub>) / N(s<sub>t</sub>) )</div>
+<p>where Q is the total return through that node and N is the visit count, so the first part is the average return which is exploitation and the second part is big when a node has barely been visited compared to its parent which is exploration, DefaultPolicy is usually just a random rollout to the end</p>
+<p>This is exactly what my <a href="hex/">Hex AlphaZero</a> uses except AlphaZero swaps the random rollout for the value network and adds the policy network's prior to the exploration term so it searches the moves the network already likes first</p>
+</section>
+<section id="lqr">
+<h2>Using Derivatives: LQR</h2>
+<p>If we can differentiate the dynamics we can write the whole thing as one big unconstrained problem just by plugging the dynamics into each other</p>
+<div class="eq">min<sub>u<sub>1</sub>, …, u<sub>T</sub></sub> c(x<sub>1</sub>, u<sub>1</sub>) + c(f(x<sub>1</sub>, u<sub>1</sub>), u<sub>2</sub>) + … + c(f(f(…)…), u<sub>T</sub>)</div>
+<p>The usual story would be to just backprop through it and optimize with df/dx, df/du, dc/dx and dc/du (control people write x for state and u for action) but in practice it really helps to use a second order method, and the classic one is LQR where the dynamics are linear and the cost is quadratic</p>
+<div class="eq">f(x<sub>t</sub>, u<sub>t</sub>) = F<sub>t</sub> [x<sub>t</sub> ; u<sub>t</sub>] + f<sub>t</sub> &nbsp;&nbsp;&nbsp; c(x<sub>t</sub>, u<sub>t</sub>) = ½ [x<sub>t</sub> ; u<sub>t</sub>]<sup>T</sup> C<sub>t</sub> [x<sub>t</sub> ; u<sub>t</sub>] + [x<sub>t</sub> ; u<sub>t</sub>]<sup>T</sup> c<sub>t</sub></div>
+<p>The base case is to solve for u<sub>T</sub> only coz the last action only affects the last cost, so we write Q(x<sub>T</sub>, u<sub>T</sub>) as a quadratic, set its gradient wrt u<sub>T</sub> to zero and get</p>
+<div class="eq">u<sub>T</sub> = K<sub>T</sub> x<sub>T</sub> + k<sub>T</sub> &nbsp;&nbsp;&nbsp; K<sub>T</sub> = −C<sub>u<sub>T</sub>,u<sub>T</sub></sub><sup>−1</sup> C<sub>u<sub>T</sub>,x<sub>T</sub></sub> &nbsp;&nbsp;&nbsp; k<sub>T</sub> = −C<sub>u<sub>T</sub>,u<sub>T</sub></sub><sup>−1</sup> c<sub>u<sub>T</sub></sub></div>
+<p>Since u<sub>T</sub> is fully decided by x<sub>T</sub> we can substitute it back in and get V(x<sub>T</sub>) = const + ½ x<sub>T</sub><sup>T</sup> V<sub>T</sub> x<sub>T</sub> + x<sub>T</sub><sup>T</sup> v<sub>T</sub> which is again quadratic, then u<sub>T−1</sub> affects x<sub>T</sub> through the linear dynamics so plugging the linear dynamics into the quadratic V keeps everything quadratic in x<sub>T−1</sub> and u<sub>T−1</sub> and we can repeat the same trick all the way back to the start</p>
+<div class="eq">backward recursion, for t = T to 1<br>Q<sub>t</sub> = C<sub>t</sub> + F<sub>t</sub><sup>T</sup> V<sub>t+1</sub> F<sub>t</sub> &nbsp;&nbsp; q<sub>t</sub> = c<sub>t</sub> + F<sub>t</sub><sup>T</sup> V<sub>t+1</sub> f<sub>t</sub> + F<sub>t</sub><sup>T</sup> v<sub>t+1</sub><br>K<sub>t</sub> = −Q<sub>u<sub>t</sub>,u<sub>t</sub></sub><sup>−1</sup> Q<sub>u<sub>t</sub>,x<sub>t</sub></sub> &nbsp;&nbsp; k<sub>t</sub> = −Q<sub>u<sub>t</sub>,u<sub>t</sub></sub><sup>−1</sup> q<sub>u<sub>t</sub></sub><br>V<sub>t</sub> = Q<sub>x<sub>t</sub>,x<sub>t</sub></sub> + Q<sub>x<sub>t</sub>,u<sub>t</sub></sub>K<sub>t</sub> + K<sub>t</sub><sup>T</sup>Q<sub>u<sub>t</sub>,x<sub>t</sub></sub> + K<sub>t</sub><sup>T</sup>Q<sub>u<sub>t</sub>,u<sub>t</sub></sub>K<sub>t</sub><br>v<sub>t</sub> = q<sub>x<sub>t</sub></sub> + Q<sub>x<sub>t</sub>,u<sub>t</sub></sub>k<sub>t</sub> + K<sub>t</sub><sup>T</sup>q<sub>u<sub>t</sub></sub> + K<sub>t</sub><sup>T</sup>Q<sub>u<sub>t</sub>,u<sub>t</sub></sub>k<sub>t</sub></div>
+<p>and then since we know x<sub>1</sub> we do a forward recursion, for t = 1 to T set u<sub>t</sub> = K<sub>t</sub>x<sub>t</sub> + k<sub>t</sub> and x<sub>t+1</sub> = f(x<sub>t</sub>, u<sub>t</sub>), and that gives the actual numbers for the whole optimal trajectory</p>
+</section>
+<section id="stochastic-and-ilqr">
+<h2>Stochastic Dynamics and Iterative LQR</h2>
+<p>If the dynamics are gaussian p(x<sub>t+1</sub> | x<sub>t</sub>, u<sub>t</sub>) = N(F<sub>t</sub>[x<sub>t</sub> ; u<sub>t</sub>] + f<sub>t</sub>, Σ<sub>t</sub>) the solution is still u<sub>t</sub> = K<sub>t</sub>x<sub>t</sub> + k<sub>t</sub>, x<sub>t</sub> isnt deterministic anymore but it is gaussian and coz gaussians are symmetric the Σ<sub>t</sub> just drops out so there is no change to the algorithm, and the nice part is K<sub>t</sub>x<sub>t</sub> is closed loop so it reacts to whatever state you actually end up in</p>
+<p>For nonlinear systems we use iterative LQR, take the current trajectory x̂<sub>t</sub>, û<sub>t</sub> and do a Taylor expansion around it, first order for the dynamics and second order for the cost, which gives a linear quadratic problem in δx<sub>t</sub> = x<sub>t</sub> − x̂<sub>t</sub> and δu<sub>t</sub> = u<sub>t</sub> − û<sub>t</sub> that we can just run LQR on</p>
+<div class="eq">until convergence<br>F<sub>t</sub> = ∇<sub>x<sub>t</sub>,u<sub>t</sub></sub> f(x̂<sub>t</sub>, û<sub>t</sub>) &nbsp;&nbsp; c<sub>t</sub> = ∇<sub>x<sub>t</sub>,u<sub>t</sub></sub> c(x̂<sub>t</sub>, û<sub>t</sub>) &nbsp;&nbsp; C<sub>t</sub> = ∇<sup>2</sup><sub>x<sub>t</sub>,u<sub>t</sub></sub> c(x̂<sub>t</sub>, û<sub>t</sub>)<br>run the LQR backward pass on δx<sub>t</sub> and δu<sub>t</sub><br>run the forward pass with the real dynamics and u<sub>t</sub> = K<sub>t</sub>(x<sub>t</sub> − x̂<sub>t</sub>) + αk<sub>t</sub> + û<sub>t</sub><br>update x̂<sub>t</sub> and û<sub>t</sub> from the forward pass</div>
+<p>Why does this work, compare it to Newton's method for min<sub>x</sub> g(x) where every step you compute the gradient g and Hessian H at x̂ and jump to the min of the quadratic approximation ½(x − x̂)<sup>T</sup>H(x − x̂) + g<sup>T</sup>(x − x̂), iLQR is the same idea of locally approximating a complex nonlinear function with a Taylor expansion and in fact it is an approximation of Newton's method for the whole unrolled problem, and if you also keep the second order terms of the dynamics you get exactly Newton's method which is called differential dynamic programming (DDP)</p>
+<p>The one catch is that jumping straight to the min of the quadratic can overshoot when the real function isnt quadratic far away, so that α in the forward pass is a line search ie start with α = 1 and keep shrinking it until the cost actually improves</p>
+</section>
+<p class="crumb" style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:2.5rem"><span><a href="garden-rl4.html">&larr; part 4: value functions and q learning</a></span></p>
+
+</main>
+<footer>
+  <span>© 2026 Krrish Bhasin</span>
+</footer>
+</div>
+</body>
+</html>

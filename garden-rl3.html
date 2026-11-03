@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep RL Part 3: Actor Critic - Krrish Bhasin</title>
+<meta name="description" content="Reward to go, the advantage, fitting a critic, bootstrapping, discount factors, online actor critic, n step returns and GAE.">
+<link rel="stylesheet" href="style.css?v=11">
+</head>
+<body class="notes">
+<div class="page">
+<header>
+  <a class="brand" href="index.html">Krrish Bhasin</a>
+  <nav>
+    <a href="index.html">home</a>
+    <a href="ml.html">machine learning</a>
+    <a href="garden.html" class="active">garden</a>
+    <a href="horror.html">horror</a>
+  </nav>
+</header>
+<main>
+<p class="crumb"><a href="garden.html">&larr; garden</a></p>
+<h1>Deep RL Part 3: Actor Critic</h1>
+<p class="postmeta">CS285 lecture 6 · advantage, bootstrapping, discount, GAE · my notes</p>
+<details class="toc" open><summary>contents</summary><ol>
+<li><a href="#reward-to-go">Reward to Go and a Better Estimate</a></li>
+<li><a href="#advantage">What About the Baseline</a></li>
+<li><a href="#value-fitting">Fitting the Value Function</a></li>
+<li><a href="#monte-carlo">Monte Carlo Evaluation</a></li>
+<li><a href="#bootstrapping">Bootstrapping</a></li>
+<li><a href="#actor-critic">An Actor Critic Algorithm</a></li>
+<li><a href="#discount">Discount Factors</a></li>
+<li><a href="#online-actor-critic">Online Actor Critic and Architecture</a></li>
+<li><a href="#critic-baselines">Critics as State Dependent Baselines</a></li>
+<li><a href="#n-step-gae">N Step Returns and GAE</a></li>
+</ol></details>
+<section id="reward-to-go">
+<h2>Reward to Go and a Better Estimate</h2>
+<p>Starting from the policy gradient in part 2, the first easy improvement is causality, an action at time t cant affect rewards that already happened before t so we only sum the rewards from t onwards and that is called the reward to go Q̂<sub>i,t</sub></p>
+<div class="eq">∇<sub>θ</sub>J(θ) ≈ (1/N) Σ<sub>i</sub> Σ<sub>t</sub> ∇<sub>θ</sub> log π<sub>θ</sub>(a<sub>i,t</sub> | s<sub>i,t</sub>) ( Σ<sub>t′=t</sub><sup>T</sup> r(s<sub>i,t′</sub>, a<sub>i,t′</sub>) )</div>
+<p>Q̂<sub>i,t</sub> is our estimate of the expected reward if we take a<sub>i,t</sub> in s<sub>i,t</sub> but the issue is that it only comes from one trajectory, so it is the total reward we happened to get on that one run, if we could instead use the expected value ie take into account all the possible trajectories from that point and average them that would reduce the variance a lot coz averaging over more outcomes always lowers variance, and that expected value is exactly the true Q function</p>
+<div class="eq">Q(s<sub>t</sub>, a<sub>t</sub>) = Σ<sub>t′=t</sub><sup>T</sup> E<sub>π<sub>θ</sub></sub> [ r(s<sub>t′</sub>, a<sub>t′</sub>) | s<sub>t</sub>, a<sub>t</sub> ]</div>
+</section>
+<section id="advantage">
+<h2>What About the Baseline</h2>
+<p>We still want a baseline and in part 2 it was the average reward, now we can average Q values but averaging over what, the best thing to subtract is the average Q over the actions in that state which is just the value function V(s<sub>t</sub>) = E<sub>a<sub>t</sub> ~ π<sub>θ</sub></sub>[Q(s<sub>t</sub>, a<sub>t</sub>)]</p>
+<p>Q minus V is called the advantage and it says how much better a<sub>t</sub> is than the average action in that state, so the gradient pushes up actions that are better than average in that state and pushes down the ones that are worse</p>
+<div class="eq">A<sup>π</sup>(s<sub>t</sub>, a<sub>t</sub>) = Q<sup>π</sup>(s<sub>t</sub>, a<sub>t</sub>) − V<sup>π</sup>(s<sub>t</sub>)<br>∇<sub>θ</sub>J(θ) ≈ (1/N) Σ<sub>i</sub> Σ<sub>t</sub> ∇<sub>θ</sub> log π<sub>θ</sub>(a<sub>i,t</sub> | s<sub>i,t</sub>) A<sup>π</sup>(s<sub>i,t</sub>, a<sub>i,t</sub>)</div>
+<p>The better our estimate of A the lower the variance</p>
+</section>
+<section id="value-fitting">
+<h2>Fitting the Value Function</h2>
+<p>So which one do we fit, Q, V or A, the trick is that Q is just the reward right now plus the value of wherever you land next</p>
+<div class="eq">Q<sup>π</sup>(s<sub>t</sub>, a<sub>t</sub>) ≈ r(s<sub>t</sub>, a<sub>t</sub>) + V<sup>π</sup>(s<sub>t+1</sub>)<br>A<sup>π</sup>(s<sub>t</sub>, a<sub>t</sub>) ≈ r(s<sub>t</sub>, a<sub>t</sub>) + V<sup>π</sup>(s<sub>t+1</sub>) − V<sup>π</sup>(s<sub>t</sub>)</div>
+<p>so we just fit V<sup>π</sup>(s) with a neural net coz it only depends on the state which makes it easier to learn and then everything else comes from it, fitting V is called policy evaluation and the objective itself is J(θ) = E<sub>s<sub>1</sub> ~ p(s<sub>1</sub>)</sub>[V<sup>π</sup>(s<sub>1</sub>)] so if we can evaluate V we can evaluate the policy</p>
+</section>
+<section id="monte-carlo">
+<h2>Monte Carlo Evaluation</h2>
+<p>The simplest way to get V is monte carlo which is what policy gradient was already doing, just sum up the rewards you actually got from that state V<sup>π</sup>(s<sub>t</sub>) ≈ Σ<sub>t′=t</sub><sup>T</sup> r(s<sub>t′</sub>, a<sub>t′</sub>) and ideally you would run many rollouts from the same state and average them but that needs you to reset the simulator to that exact state which you usually cant</p>
+<p>So monte carlo estimates how good the experience was and policy gradient uses that to improve the policy</p>
+<p>With a neural net it works out fine anyway coz the same function has to fit many samples from similar states so it naturally averages out the noise, not as good as many rollouts from one state but still pretty good, so the training data is the state paired with the reward to go and we do normal supervised regression</p>
+<div class="eq">training data {(s<sub>i,t</sub>, Σ<sub>t′=t</sub><sup>T</sup> r(s<sub>i,t′</sub>, a<sub>i,t′</sub>))} &nbsp;&nbsp;&nbsp; L(φ) = ½ Σ<sub>i</sub> || V̂<sub>φ</sub><sup>π</sup>(s<sub>i</sub>) − y<sub>i</sub> ||<sup>2</sup></div>
+</section>
+<section id="bootstrapping">
+<h2>Bootstrapping</h2>
+<p>We can do better, the ideal target is the expected reward to go which is r right now plus V of the next state, and we dont have the true V but we have our current fitted one so we just plug that in</p>
+<div class="eq">y<sub>i,t</sub> ≈ r(s<sub>i,t</sub>, a<sub>i,t</sub>) + V̂<sub>φ</sub><sup>π</sup>(s<sub>i,t+1</sub>)</div>
+<p>This is called a bootstrapped estimate, it has lower variance coz it only uses one real reward and the rest comes from the network but it is biased coz the network is never exactly right</p>
+</section>
+<section id="actor-critic">
+<h2>An Actor Critic Algorithm</h2>
+<p>Putting it together the actor is the policy and the critic is the value function that tells the actor how good its actions were</p>
+<div class="eq">1. sample {s<sub>i</sub>, a<sub>i</sub>} from π<sub>θ</sub>(a | s) ie run it on the robot<br>2. fit V̂<sub>φ</sub><sup>π</sup>(s) to sampled reward sums<br>3. evaluate Â<sup>π</sup>(s<sub>i</sub>, a<sub>i</sub>) = r(s<sub>i</sub>, a<sub>i</sub>) + V̂<sub>φ</sub><sup>π</sup>(s′<sub>i</sub>) − V̂<sub>φ</sub><sup>π</sup>(s<sub>i</sub>)<br>4. ∇<sub>θ</sub>J(θ) ≈ Σ<sub>i</sub> ∇<sub>θ</sub> log π<sub>θ</sub>(a<sub>i</sub> | s<sub>i</sub>) Â<sup>π</sup>(s<sub>i</sub>, a<sub>i</sub>)<br>5. θ ← θ + α∇<sub>θ</sub>J(θ)</div>
+</section>
+<section id="discount">
+<h2>Discount Factors</h2>
+<p>If the episode is infinitely long V can just keep growing forever so we add a discount factor γ between 0 and 1 usually 0.99 and the target becomes y<sub>i,t</sub> ≈ r(s<sub>i,t</sub>, a<sub>i,t</sub>) + γV̂<sub>φ</sub><sup>π</sup>(s<sub>i,t+1</sub>), the way to think about it is that at every step there is a 1 − γ chance you die and get no more reward, so rewards sooner are worth more than rewards later</p>
+<p>For monte carlo policy gradients there are two ways to add it and they are not the same</p>
+<div class="eq">option 1 &nbsp; (1/N) Σ<sub>i</sub> Σ<sub>t</sub> ∇<sub>θ</sub> log π<sub>θ</sub>(a<sub>i,t</sub> | s<sub>i,t</sub>) ( Σ<sub>t′=t</sub><sup>T</sup> γ<sup>t′−t</sup> r(s<sub>i,t′</sub>, a<sub>i,t′</sub>) )<br>option 2 &nbsp; (1/N) Σ<sub>i</sub> Σ<sub>t</sub> γ<sup>t−1</sup> ∇<sub>θ</sub> log π<sub>θ</sub>(a<sub>i,t</sub> | s<sub>i,t</sub>) ( Σ<sub>t′=t</sub><sup>T</sup> γ<sup>t′−t</sup> r(s<sub>i,t′</sub>, a<sub>i,t′</sub>) )</div>
+<p>Option 2 is the mathematically correct one if you really believe in the dying story coz it also says that later decisions matter less ie later steps dont matter if you are already dead, but option 1 is what we actually use coz we usually want a policy that does well at every timestep not just early on, and the discount is really there as a variance reduction trick rather than as part of the true objective</p>
+</section>
+<section id="online-actor-critic">
+<h2>Online Actor Critic and Architecture</h2>
+<p>With a critic we dont even need full trajectories we can update after every single step</p>
+<div class="eq">1. take action a ~ π<sub>θ</sub>(a | s) and get (s, a, s′, r)<br>2. update V̂<sub>φ</sub><sup>π</sup> using the target r + γV̂<sub>φ</sub><sup>π</sup>(s′)<br>3. evaluate Â<sup>π</sup>(s, a) = r(s, a) + γV̂<sub>φ</sub><sup>π</sup>(s′) − V̂<sub>φ</sub><sup>π</sup>(s)<br>4. ∇<sub>θ</sub>J(θ) ≈ ∇<sub>θ</sub> log π<sub>θ</sub>(a | s) Â<sup>π</sup>(s, a)<br>5. θ ← θ + α∇<sub>θ</sub>J(θ)</div>
+<p>For the networks you can have two separate ones, one for V̂ and one for π, which is simple and stable but they dont share any features, or one shared network with two heads which shares features but is harder to train coz the two losses pull on the same weights</p>
+<p>The problem with steps 2 and 4 is that a batch of one sample is way too noisy, so it works best with a batch from parallel workers, synchronized parallel actor critic has all the workers collect a step and then update together and asynchronous has each worker update a shared θ whenever it is done which is faster but means some workers are using slightly old params</p>
+</section>
+<section id="critic-baselines">
+<h2>Critics as State Dependent Baselines</h2>
+<p>Comparing the two, actor critic with r + γV̂(s′) − V̂(s) has lower variance coz of the critic but it is not unbiased if the critic isnt perfect, policy gradient with a constant baseline has no bias but higher variance coz it is a single sample estimate</p>
+<p>The middle ground is to use the critic only as the baseline and keep the real monte carlo reward to go</p>
+<div class="eq">∇<sub>θ</sub>J(θ) ≈ (1/N) Σ<sub>i</sub> Σ<sub>t</sub> ∇<sub>θ</sub> log π<sub>θ</sub>(a<sub>i,t</sub> | s<sub>i,t</sub>) ( ( Σ<sub>t′=t</sub><sup>T</sup> γ<sup>t′−t</sup> r(s<sub>i,t′</sub>, a<sub>i,t′</sub>) ) − V̂<sub>φ</sub><sup>π</sup>(s<sub>i,t</sub>) )</div>
+<p>which has no bias coz any baseline that only depends on the state is fine, and lower variance coz the baseline is closer to the actual rewards than a single constant</p>
+</section>
+<section id="n-step-gae">
+<h2>N Step Returns and GAE</h2>
+<p>So the critic version Â<sub>C</sub> has low variance but high bias if the value is wrong (and it always is) and the monte carlo version Â<sub>MC</sub> has no bias but high variance, can we combine them to control the bias variance trade off</p>
+<p>The idea is that the variance mostly comes from far in the future coz the further out you go the more the trajectories spread apart, so we use real rewards for the first n steps and then cut and let the critic handle the rest</p>
+<div class="eq">Â<sub>n</sub><sup>π</sup>(s<sub>t</sub>, a<sub>t</sub>) = Σ<sub>t′=t</sub><sup>t+n</sup> γ<sup>t′−t</sup> r(s<sub>t′</sub>, a<sub>t′</sub>) − V̂<sub>φ</sub><sup>π</sup>(s<sub>t</sub>) + γ<sup>n</sup> V̂<sub>φ</sub><sup>π</sup>(s<sub>t+n</sub>)</div>
+<p>You get more bias if you use a small n and more variance if you use a large n so we mostly prefer cutting earlier, and choosing n > 1 often works better than either extreme</p>
+<p>But why pick just one n, generalized advantage estimation cuts everywhere at once and takes a weighted mix of all the n step returns with weights that fall off exponentially w<sub>n</sub> ∝ λ<sup>n−1</sup> which again prefers cutting earlier, and it simplifies really nicely</p>
+<div class="eq">Â<sub>GAE</sub><sup>π</sup>(s<sub>t</sub>, a<sub>t</sub>) = Σ<sub>t′=t</sub><sup>∞</sup> (γλ)<sup>t′−t</sup> δ<sub>t′</sub> &nbsp;&nbsp;&nbsp; δ<sub>t′</sub> = r(s<sub>t′</sub>, a<sub>t′</sub>) + γV̂<sub>φ</sub><sup>π</sup>(s<sub>t′+1</sub>) − V̂<sub>φ</sub><sup>π</sup>(s<sub>t′</sub>)</div>
+<p>So λ acts kind of like another discount, λ = 0 is the one step critic and λ = 1 is monte carlo, and this is also a nice way to see that the discount γ is itself a variance reduction knob, GAE is what PPO uses by default</p>
+</section>
+<p class="crumb" style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:2.5rem"><span><a href="garden-rl2.html">&larr; part 2: rl basics and policy gradients</a></span><span><a href="garden-rl4.html">part 4: value functions and q learning &rarr;</a></span></p>
+
+</main>
+<footer>
+  <span>© 2026 Krrish Bhasin</span>
+</footer>
+</div>
+</body>
+</html>

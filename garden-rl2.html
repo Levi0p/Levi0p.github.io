@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep RL Part 2: RL Basics and Policy Gradients - Krrish Bhasin</title>
+<meta name="description" content="MDPs, the rl objective, Q and value functions, types of algorithms, deriving the policy gradient, baselines, importance sampling and the natural gradient.">
+<link rel="stylesheet" href="style.css?v=11">
+</head>
+<body class="notes">
+<div class="page">
+<header>
+  <a class="brand" href="index.html">Krrish Bhasin</a>
+  <nav>
+    <a href="index.html">home</a>
+    <a href="ml.html">machine learning</a>
+    <a href="garden.html" class="active">garden</a>
+    <a href="horror.html">horror</a>
+  </nav>
+</header>
+<main>
+<p class="crumb"><a href="garden.html">&larr; garden</a></p>
+<h1>Deep RL Part 2: RL Basics and Policy Gradients</h1>
+<p class="postmeta">CS285 lectures 4 and 5 · MDPs, Q and V, REINFORCE, baselines · my notes</p>
+<details class="toc" open><summary>contents</summary><ol>
+<li><a href="#mdp">Markov Decision Processes</a></li>
+<li><a href="#goal-of-rl">The Goal of RL</a></li>
+<li><a href="#infinite-horizon">Infinite Horizon and the Stationary Distribution</a></li>
+<li><a href="#expectations">Why We Always Care About Expectations</a></li>
+<li><a href="#anatomy">The Anatomy of an RL Algorithm</a></li>
+<li><a href="#q-and-v">Q Functions and Value Functions</a></li>
+<li><a href="#types-of-algorithms">Types of Algorithms and Sample Efficiency</a></li>
+<li><a href="#evaluating-objective">Evaluating the Objective</a></li>
+<li><a href="#policy-gradient">Deriving the Policy Gradient</a></li>
+<li><a href="#maximum-likelihood">Policy Gradient vs Maximum Likelihood</a></li>
+<li><a href="#partial-observability">Partial Observability</a></li>
+<li><a href="#variance-and-baselines">Variance and Baselines</a></li>
+<li><a href="#on-policy">Policy Gradient Is On Policy</a></li>
+<li><a href="#off-policy-pg">The Off Policy Policy Gradient</a></li>
+<li><a href="#pg-in-practice">Policy Gradient in Practice</a></li>
+<li><a href="#natural-gradient">Covariant and Natural Policy Gradient</a></li>
+</ol></details>
+<section id="mdp">
+<h2>Markov Decision Processes</h2>
+<p>Everything in rl sits on top of a markov decision process M = {S, A, T, r} where S is the state space, A is the action space, T is the transition operator and r is the reward function, states and actions can be discrete or continuous</p>
+<p>The reason T is called an operator and not just a probability is that if you write μ<sub>t,j</sub> = p(s<sub>t</sub> = j) and ξ<sub>t,k</sub> = p(a<sub>t</sub> = k) and T<sub>i,j,k</sub> = p(s<sub>t+1</sub> = i | s<sub>t</sub> = j, a<sub>t</sub> = k) then the next state distribution is literally just T applied to the current one</p>
+<div class="eq">μ<sub>t+1,i</sub> = Σ<sub>j,k</sub> T<sub>i,j,k</sub> μ<sub>t,j</sub> ξ<sub>t,k</sub></div>
+<p>so T is really a tensor that pushes the whole distribution forward one step</p>
+</section>
+<section id="goal-of-rl">
+<h2>The Goal of RL</h2>
+<p>The policy π<sub>θ</sub>(a | s) picks an action, the world gives back a new state using p(s′ | s, a) and this loop runs for T steps, so the probability of a whole trajectory τ = (s<sub>1</sub>, a<sub>1</sub>, …, s<sub>T</sub>, a<sub>T</sub>) is just everything multiplied together</p>
+<div class="eq">p<sub>θ</sub>(τ) = p(s<sub>1</sub>) Π<sub>t=1</sub><sup>T</sup> π<sub>θ</sub>(a<sub>t</sub> | s<sub>t</sub>) p(s<sub>t+1</sub> | s<sub>t</sub>, a<sub>t</sub>)</div>
+<p>and the goal is to find the params that make high reward trajectories most likely</p>
+<div class="eq">θ* = argmax<sub>θ</sub> E<sub>τ ~ p<sub>θ</sub>(τ)</sub> [ Σ<sub>t</sub> r(s<sub>t</sub>, a<sub>t</sub>) ]</div>
+<p>One way to look at this is that the pair (s, a) itself forms a markov chain coz p((s<sub>t+1</sub>, a<sub>t+1</sub>) | (s<sub>t</sub>, a<sub>t</sub>)) = p(s<sub>t+1</sub> | s<sub>t</sub>, a<sub>t</sub>) π<sub>θ</sub>(a<sub>t+1</sub> | s<sub>t+1</sub>) which lets us rewrite the objective as a sum of expectations over the state action marginal at each step</p>
+<div class="eq">finite horizon &nbsp; θ* = argmax<sub>θ</sub> Σ<sub>t=1</sub><sup>T</sup> E<sub>(s<sub>t</sub>, a<sub>t</sub>) ~ p<sub>θ</sub>(s<sub>t</sub>, a<sub>t</sub>)</sub> [ r(s<sub>t</sub>, a<sub>t</sub>) ]</div>
+</section>
+<section id="infinite-horizon">
+<h2>Infinite Horizon and the Stationary Distribution</h2>
+<p>What if T is infinite, then the sum blows up so we average it instead and the question becomes does p(s<sub>t</sub>, a<sub>t</sub>) settle down to some fixed distribution as t goes on, and under some regularity conditions it does and it is called the stationary distribution μ = p<sub>θ</sub>(s, a)</p>
+<p>Stationary just means it is the same before and after a transition so μ = Tμ which means (T − I)μ = 0 ie μ is an eigenvector of T with eigenvalue 1, and once you are there the early steps barely matter and the objective just becomes the expected reward under that distribution</p>
+<div class="eq">θ* = argmax<sub>θ</sub> (1/T) Σ<sub>t</sub> E[r(s<sub>t</sub>, a<sub>t</sub>)] → E<sub>(s, a) ~ p<sub>θ</sub>(s, a)</sub> [ r(s, a) ]</div>
+</section>
+<section id="expectations">
+<h2>Why We Always Care About Expectations</h2>
+<p>In rl we almost always care about expectations and there is a really nice reason for it, think of a car on a cliff road where staying on the road is +1 and falling off is −1, the reward itself is not smooth at all coz you are either on the road or not, but if the policy falls with probability θ then the expected reward is smooth in θ</p>
+<p>So even when the reward is some ugly step function the expected reward is a smooth function of the params and that is exactly what lets us use gradient based methods on stuff that looks totally non differentiable</p>
+</section>
+<section id="anatomy">
+<h2>The Anatomy of an RL Algorithm</h2>
+<p>Pretty much every rl algorithm is the same loop of three boxes and the differences between algorithms are just what goes in each box</p>
+<figure class="diagram"><svg viewBox="0 0 520 200" role="img" aria-label="loop of generate samples, fit a model or estimate the return, improve the policy"><rect class="b" x="20" y="80" width="140" height="44" rx="6"/><text x="90" y="100" text-anchor="middle">generate samples</text><text x="90" y="116" text-anchor="middle" class="cap">run the policy</text><rect class="b" x="300" y="16" width="160" height="44" rx="6"/><text x="380" y="36" text-anchor="middle">fit a model</text><text x="380" y="52" text-anchor="middle" class="cap">or estimate the return</text><rect class="b" x="300" y="144" width="160" height="44" rx="6"/><text x="380" y="170" text-anchor="middle">improve the policy</text><path class="arr" d="M90 80 L90 38 L292 38 M286 35 L292 38 L286 41"/><path class="arr" d="M380 60 L380 136 M377 130 L380 136 L383 130"/><path class="arr" d="M300 166 L90 166 L90 132 M87 138 L90 132 L93 138"/></svg></figure>
+<p>The orange box is where we actually run the policy in the world and collect trajectories, the green box is where we figure out how good things are and the blue box is where we change the policy</p>
+<p>A simple example is when the green box just estimates the return by averaging the rewards of the samples J(θ) ≈ (1/N) Σ<sub>i</sub> Σ<sub>t</sub> r<sub>t</sub><sup>i</sup> and the blue box does a gradient step θ ← θ + α∇<sub>θ</sub>J(θ) to make the better trajectories more likely, and a fancier one is rl by backprop where the green box learns a model f<sub>φ</sub> such that s<sub>t+1</sub> ≈ f<sub>φ</sub>(s<sub>t</sub>, a<sub>t</sub>) and then the blue box backprops through f<sub>φ</sub> and r to train π<sub>θ</sub>(s<sub>t</sub>) = a<sub>t</sub></p>
+<p>How expensive each box is depends a lot on the setting, generating samples on a real robot is slow and painful while in a simulator it is basically free, and the green box can be anything from summing some numbers to training a whole neural net</p>
+</section>
+<section id="q-and-v">
+<h2>Q Functions and Value Functions</h2>
+<p>These two show up in every part after this so worth getting them clear</p>
+<p>The Q function is the expected total reward from taking a specific action in a state and then following the policy after that</p>
+<div class="eq">Q<sup>π</sup>(s<sub>t</sub>, a<sub>t</sub>) = Σ<sub>t′=t</sub><sup>T</sup> E<sub>π<sub>θ</sub></sub> [ r(s<sub>t′</sub>, a<sub>t′</sub>) | s<sub>t</sub>, a<sub>t</sub> ]</div>
+<p>The value function is the expected total reward from a state averaging over whatever actions the policy would choose</p>
+<div class="eq">V<sup>π</sup>(s<sub>t</sub>) = E<sub>a<sub>t</sub> ~ π(a<sub>t</sub> | s<sub>t</sub>)</sub> [ Q<sup>π</sup>(s<sub>t</sub>, a<sub>t</sub>) ]</div>
+<p>And the rl objective is just the value averaged over the possible starting states E<sub>s<sub>1</sub> ~ p(s<sub>1</sub>)</sub>[V<sup>π</sup>(s<sub>1</sub>)] and rl is trying to make this number as big as possible</p>
+<p>The two big ideas for using them are, first if we know Q<sup>π</sup>(s, a) we can make a new policy that just picks argmax<sub>a</sub> Q<sup>π</sup>(s, a) and it is guaranteed to be at least as good as π and probably better no matter what π was, and second if Q<sup>π</sup>(s, a) > V<sup>π</sup>(s) then a is better than average so we can push the policy to make a more likely, these two ideas basically are value based methods and policy gradients and they come back again and again</p>
+</section>
+<section id="types-of-algorithms">
+<h2>Types of Algorithms and Sample Efficiency</h2>
+<p>Value based algorithms fit V(s) or Q(s, a) in the green box and then set π(s) = argmax<sub>a</sub> Q(s, a) in the blue box, direct policy gradients just evaluate the returns R<sub>τ</sub> = Σ<sub>t</sub> r(s<sub>t</sub>, a<sub>t</sub>) and take a gradient step, actor critic is a mix of both and model based rl learns how the world works and plans or trains through it</p>
+<p>Sample efficiency is how many samples we need to get a good policy and the most important question for it is whether the algorithm is off policy, off policy means you can improve the policy without generating new samples from that policy and on policy means every time the policy changes even a little bit you have to go collect new samples</p>
+<p>Roughly from most efficient to least it goes model based shallow rl, model based deep rl, off policy Q learning, actor critic, on policy policy gradients and then evolutionary or gradient free methods, so why would anyone use a less efficient one, coz wall clock time is not the same as efficiency and if your simulator is cheap the less efficient algo can still finish first</p>
+<p>The other thing is that for supervised learning we usually dont have to worry if it converges coz it is almost always gradient descent but the same cant be said for rl where a lot of algorithms are not gradient descent at all, Q learning is a fixed point iteration and model based rl is optimizing a model that isnt the same as the reward, policy gradient actually is gradient descent on the real objective but it is often the least efficient one</p>
+</section>
+<section id="evaluating-objective">
+<h2>Evaluating the Objective</h2>
+<p>Now into policy gradients which is the most direct approach, call the objective J(θ) = E<sub>τ ~ p<sub>θ</sub>(τ)</sub>[Σ<sub>t</sub> r(s<sub>t</sub>, a<sub>t</sub>)]</p>
+<p>If you want to know what J(θ) is and you dont know p(s<sub>1</sub>) or p(s<sub>t+1</sub> | s<sub>t</sub>, a<sub>t</sub>) you just run the policy for N samples of T timesteps and average the total reward and that gets quite close to the real number</p>
+<div class="eq">J(θ) ≈ (1/N) Σ<sub>i</sub> Σ<sub>t</sub> r(s<sub>i,t</sub>, a<sub>i,t</sub>)</div>
+<p>but we dont just want the value we want its gradient so we can improve it</p>
+</section>
+<section id="policy-gradient">
+<h2>Deriving the Policy Gradient</h2>
+<p>Write J(θ) = ∫ p<sub>θ</sub>(τ) r(τ) dτ where r(τ) is the sum of rewards on the trajectory, the gradient of that has ∇<sub>θ</sub>p<sub>θ</sub>(τ) inside which we cant sample from, so we use a convenient identity</p>
+<div class="eq">p<sub>θ</sub>(τ) ∇<sub>θ</sub> log p<sub>θ</sub>(τ) = p<sub>θ</sub>(τ) ∇<sub>θ</sub>p<sub>θ</sub>(τ) / p<sub>θ</sub>(τ) = ∇<sub>θ</sub>p<sub>θ</sub>(τ)</div>
+<p>which turns the gradient back into an expectation that we can estimate with samples</p>
+<div class="eq">∇<sub>θ</sub>J(θ) = ∫ ∇<sub>θ</sub>p<sub>θ</sub>(τ) r(τ) dτ = E<sub>τ ~ p<sub>θ</sub>(τ)</sub> [ ∇<sub>θ</sub> log p<sub>θ</sub>(τ) r(τ) ]</div>
+<p>Now take the log of the trajectory probability and the product becomes a sum log p<sub>θ</sub>(τ) = log p(s<sub>1</sub>) + Σ<sub>t</sub> [ log π<sub>θ</sub>(a<sub>t</sub> | s<sub>t</sub>) + log p(s<sub>t+1</sub> | s<sub>t</sub>, a<sub>t</sub>) ] and the best part is that p(s<sub>1</sub>) and the transitions dont depend on θ so their gradient is zero and they just disappear</p>
+<div class="eq">∇<sub>θ</sub>J(θ) = E<sub>τ ~ p<sub>θ</sub>(τ)</sub> [ ( Σ<sub>t</sub> ∇<sub>θ</sub> log π<sub>θ</sub>(a<sub>t</sub> | s<sub>t</sub>) ) ( Σ<sub>t</sub> r(s<sub>t</sub>, a<sub>t</sub>) ) ]</div>
+<p>So we dont need to know the dynamics at all which is huge, and replacing the expectation with samples gives the REINFORCE algorithm</p>
+<div class="eq">1. sample {τ<sup>i</sup>} from π<sub>θ</sub>(a<sub>t</sub> | s<sub>t</sub>) ie run the policy<br>2. ∇<sub>θ</sub>J(θ) ≈ Σ<sub>i</sub> ( Σ<sub>t</sub> ∇<sub>θ</sub> log π<sub>θ</sub>(a<sub>t</sub><sup>i</sup> | s<sub>t</sub><sup>i</sup>) ) ( Σ<sub>t</sub> r(s<sub>t</sub><sup>i</sup>, a<sub>t</sub><sup>i</sup>) )<br>3. θ ← θ + α∇<sub>θ</sub>J(θ)</div>
+</section>
+<section id="maximum-likelihood">
+<h2>Policy Gradient vs Maximum Likelihood</h2>
+<p>Maximum likelihood means adjusting the network's params to maximize the probability it assigns to the actions seen in the training data, which is exactly behavioural cloning from part 1</p>
+<div class="eq">policy gradient &nbsp; (1/N) Σ<sub>i</sub> ( Σ<sub>t</sub> ∇<sub>θ</sub> log π<sub>θ</sub>(a<sub>i,t</sub> | s<sub>i,t</sub>) ) ( Σ<sub>t</sub> r(s<sub>i,t</sub>, a<sub>i,t</sub>) )<br>maximum likelihood &nbsp; (1/N) Σ<sub>i</sub> ( Σ<sub>t</sub> ∇<sub>θ</sub> log π<sub>θ</sub>(a<sub>i,t</sub> | s<sub>i,t</sub>) )</div>
+<p>They use the exact same log probability gradient and the only difference is that REINFORCE weights it by the reward the trajectory got, so behaviours that led to high reward get pushed up and ones with negative reward get pushed down, you sample with the current policy, compute the gradient weighted by reward and update to maximize expected reward, so good stuff is made more likely and bad stuff less likely and it is basically just a mathematical way of writing trial and error</p>
+<p>This also means in code you can implement it as a weighted maximum likelihood loss which is what everyone actually does</p>
+</section>
+<section id="partial-observability">
+<h2>Partial Observability</h2>
+<p>If you look back at the derivation we never used the markov property anywhere, so you can just swap s<sub>t</sub> with o<sub>t</sub> and it works for partially observed problems without any changes</p>
+<div class="eq">∇<sub>θ</sub>J(θ) ≈ (1/N) Σ<sub>i</sub> ( Σ<sub>t</sub> ∇<sub>θ</sub> log π<sub>θ</sub>(a<sub>i,t</sub> | o<sub>i,t</sub>) ) ( Σ<sub>t</sub> r(s<sub>i,t</sub>, a<sub>i,t</sub>) )</div>
+</section>
+<section id="variance-and-baselines">
+<h2>Variance and Baselines</h2>
+<p>The problem with policy gradient is that with a small number of samples the variance is really high and we dont get good results, as the number of samples goes to infinity it would give the right answer but we never have infinite samples, like if every trajectory gets a positive reward then every action gets pushed up just by different amounts and the gradient jumps around a lot</p>
+<p>The fix is to subtract a baseline b from the reward so that the policy increases the probability of actions that did better than average and decreases the ones that did worse than average</p>
+<div class="eq">∇<sub>θ</sub>J(θ) ≈ (1/N) Σ<sub>i</sub> ∇<sub>θ</sub> log p<sub>θ</sub>(τ) [ r(τ) − b ] &nbsp;&nbsp;&nbsp; b = (1/N) Σ<sub>i</sub> r(τ)</div>
+<p>But are we even allowed to do that, yes coz the baseline part has zero expected value</p>
+<div class="eq">E[∇<sub>θ</sub> log p<sub>θ</sub>(τ) b] = ∫ ∇<sub>θ</sub>p<sub>θ</sub>(τ) b dτ = b ∇<sub>θ</sub> ∫ p<sub>θ</sub>(τ) dτ = b ∇<sub>θ</sub> 1 = 0</div>
+<p>so subtracting a baseline is unbiased in expectation and only changes the variance, the average reward isnt the best baseline but it is pretty good, if you actually write out the variance and set its derivative wrt b to zero you get the optimal one where g(τ) = ∇<sub>θ</sub> log p<sub>θ</sub>(τ)</p>
+<div class="eq">b = E[ g(τ)<sup>2</sup> r(τ) ] / E[ g(τ)<sup>2</sup> ]</div>
+<p>which is just the expected reward weighted by gradient magnitude, and it is a different baseline for every parameter so in practice people mostly stick with the average</p>
+</section>
+<section id="on-policy">
+<h2>Policy Gradient Is On Policy</h2>
+<p>Policy gradient is on policy which means if you change the params you have to go back to step 1 and sample again with the new policy, you cant reuse old samples coz the gradient is an expectation under the current p<sub>θ</sub>(τ) and samples from an old policy come from a different distribution, and since neural nets only change a little bit each gradient step you end up collecting a whole new batch for one tiny update which is really inefficient when sampling is expensive</p>
+<p>The way around it is importance sampling which lets you compute an expectation under one distribution using samples from another</p>
+<div class="eq">E<sub>x ~ p(x)</sub>[f(x)] = ∫ q(x) (p(x) / q(x)) f(x) dx = E<sub>x ~ q(x)</sub> [ (p(x) / q(x)) f(x) ]</div>
+<p>So if we have samples from some other p̄(τ) we can write J(θ) = E<sub>τ ~ p̄(τ)</sub>[ (p<sub>θ</sub>(τ) / p̄(τ)) r(τ) ] and when you write the ratio out the initial state and the transitions cancel coz they are the same in both, so the ratio only needs the policies Π<sub>t</sub> π<sub>θ</sub>(a<sub>t</sub> | s<sub>t</sub>) / Π<sub>t</sub> π̄(a<sub>t</sub> | s<sub>t</sub>) which we know</p>
+</section>
+<section id="off-policy-pg">
+<h2>The Off Policy Policy Gradient</h2>
+<p>Doing the same thing for new params θ′ using samples from θ gives</p>
+<div class="eq">∇<sub>θ′</sub>J(θ′) = E<sub>τ ~ p<sub>θ</sub>(τ)</sub> [ (p<sub>θ′</sub>(τ) / p<sub>θ</sub>(τ)) ∇<sub>θ′</sub> log π<sub>θ′</sub>(τ) r(τ) ]</div>
+<p>and if you plug in θ = θ′ the ratio is 1 and you get back the normal policy gradient which is a nice sanity check, and using causality ie future actions dont affect the current weight you can cut down the product to only go up to time t</p>
+<div class="eq">E<sub>τ ~ p<sub>θ</sub>(τ)</sub> [ Σ<sub>t</sub> ∇<sub>θ′</sub> log π<sub>θ′</sub>(a<sub>t</sub> | s<sub>t</sub>) ( Π<sub>t′=1</sub><sup>t</sup> π<sub>θ′</sub>(a<sub>t′</sub> | s<sub>t′</sub>) / π<sub>θ</sub>(a<sub>t′</sub> | s<sub>t′</sub>) ) ( Σ<sub>t′=t</sub><sup>T</sup> r(s<sub>t′</sub>, a<sub>t′</sub>) ) ]</div>
+<p>The issue is that product of ratios which is exponential in T so it either blows up or goes to zero, the trick is to write it per timestep with the state action marginals and just ignore the ratio of state probabilities and keep only the action ratio π<sub>θ′</sub>(a<sub>i,t</sub> | s<sub>i,t</sub>) / π<sub>θ</sub>(a<sub>i,t</sub> | s<sub>i,t</sub>), this looks like cheating right now but part 5 is all about why it is reasonable as long as the policies stay close</p>
+</section>
+<section id="pg-in-practice">
+<h2>Policy Gradient in Practice</h2>
+<p>To implement it with autodiff you dont compute the gradient by hand, you build a pseudo loss whose gradient is the policy gradient ie the log probs weighted by the Q values and let the framework do the rest</p>
+<pre>logits = policy.predictions(states)          # (N*T) x Da
+negative_likelihoods = softmax_cross_entropy(labels=actions, logits=logits)
+weighted_negative_likelihoods = negative_likelihoods * q_values
+loss = reduce_mean(weighted_negative_likelihoods)
+gradients = loss.gradients(loss, variables)</pre>
+<div class="eq">J̃(θ) ≈ (1/N) Σ<sub>i</sub> Σ<sub>t</sub> log π<sub>θ</sub>(a<sub>i,t</sub> | s<sub>i,t</sub>) Q̂<sub>i,t</sub></div>
+<p>Some tips, remember the gradient has high variance so it isnt like supervised learning and the gradients are going to be really noisy, use much larger batches than you think, and tweaking learning rates is very hard so adaptive ones like Adam are ok ish and there are policy gradient specific ways to pick the step size which is next</p>
+</section>
+<section id="natural-gradient">
+<h2>Covariant and Natural Policy Gradient</h2>
+<p>The thing with θ ← θ + α∇<sub>θ</sub>J(θ) is that some params change the probabilities a lot more than others, so one fixed step size is too big for some directions and too small for others, a gradient step is really solving argmax<sub>θ′</sub> (θ′ − θ)<sup>T</sup>∇<sub>θ</sub>J(θ) subject to ||θ′ − θ||<sup>2</sup> ≤ ε which limits how far we move in parameter space but we actually care about how far we move in policy space</p>
+<p>So instead we constrain the change in the policy itself using a divergence that doesnt care how it is parameterized, usually KL divergence, and KL can be approximated with the Fisher information matrix F</p>
+<div class="eq">D<sub>KL</sub>(π<sub>θ′</sub> || π<sub>θ</sub>) ≈ (θ′ − θ)<sup>T</sup> F (θ′ − θ) &nbsp;&nbsp;&nbsp; F = E<sub>π<sub>θ</sub></sub> [ ∇<sub>θ</sub> log π<sub>θ</sub>(a | s) ∇<sub>θ</sub> log π<sub>θ</sub>(a | s)<sup>T</sup> ]</div>
+<p>and solving the constrained problem gives the natural gradient</p>
+<div class="eq">θ ← θ + α F<sup>−1</sup> ∇<sub>θ</sub>J(θ)</div>
+<p>The takeaway is that policy gradient can be hard to use coz different params affect the distribution in different ways and the natural gradient fixes that by rescaling, with natural gradient you pick α and with trust region policy optimization (TRPO) you pick ε and solve for α, and conjugate gradient works well for computing F<sup>−1</sup>∇J without building F, we come back to this properly in part 5</p>
+</section>
+<p class="crumb" style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:2.5rem"><span><a href="garden-rl1.html">&larr; part 1: imitation learning</a></span><span><a href="garden-rl3.html">part 3: actor critic &rarr;</a></span></p>
+
+</main>
+<footer>
+  <span>© 2026 Krrish Bhasin</span>
+</footer>
+</div>
+</body>
+</html>

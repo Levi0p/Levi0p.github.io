@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep RL Part 4: Value Functions and Q Learning - Krrish Bhasin</title>
+<meta name="description" content="Policy and value iteration, fitted Q iteration, why it doesnt converge, replay buffers, target networks, DQN, double Q and continuous actions.">
+<link rel="stylesheet" href="style.css?v=11">
+</head>
+<body class="notes">
+<div class="page">
+<header>
+  <a class="brand" href="index.html">Krrish Bhasin</a>
+  <nav>
+    <a href="index.html">home</a>
+    <a href="ml.html">machine learning</a>
+    <a href="garden.html" class="active">garden</a>
+    <a href="horror.html">horror</a>
+  </nav>
+</header>
+<main>
+<p class="crumb"><a href="garden.html">&larr; garden</a></p>
+<h1>Deep RL Part 4: Value Functions and Q Learning</h1>
+<p class="postmeta">CS285 lectures 7 and 8 · value iteration, fitted Q, DQN · my notes</p>
+<details class="toc" open><summary>contents</summary><ol>
+<li><a href="#omit-policy-gradient">Can We Drop the Policy Gradient</a></li>
+<li><a href="#dynamic-programming">Dynamic Programming</a></li>
+<li><a href="#fitted-value-iteration">Fitted Value Iteration</a></li>
+<li><a href="#fitted-q-iteration">When We Dont Know the Dynamics: Fitted Q Iteration</a></li>
+<li><a href="#online-q-learning">Online Q Learning and Exploration</a></li>
+<li><a href="#convergence">Does Any of This Converge</a></li>
+<li><a href="#replay-buffer">Correlated Samples and Replay Buffers</a></li>
+<li><a href="#dqn">Target Networks and DQN</a></li>
+<li><a href="#double-q">Overestimation and Double Q Learning</a></li>
+<li><a href="#n-step-q">Multi Step Returns in Q Learning</a></li>
+<li><a href="#continuous-actions">Q Learning with Continuous Actions</a></li>
+<li><a href="#q-learning-tips">Practical Tips for Q Learning</a></li>
+</ol></details>
+<section id="omit-policy-gradient">
+<h2>Can We Drop the Policy Gradient</h2>
+<p>A<sup>π</sup>(s<sub>t</sub>, a<sub>t</sub>) says how much better a<sub>t</sub> is than the average action under π, so argmax<sub>a<sub>t</sub></sub> A<sup>π</sup>(s<sub>t</sub>, a<sub>t</sub>) is the best action from s<sub>t</sub> if we then follow π, and that action is at least as good as anything π would have picked regardless of what π is, so forget policies and just do this</p>
+<div class="eq">π′(a<sub>t</sub> | s<sub>t</sub>) = 1 if a<sub>t</sub> = argmax<sub>a<sub>t</sub></sub> A<sup>π</sup>(s<sub>t</sub>, a<sub>t</sub>) and 0 otherwise</div>
+<p>π′ is at least as good as π and probably better, and doing this over and over is policy iteration</p>
+<div class="eq">1. evaluate A<sup>π</sup>(s, a)<br>2. set π ← π′</div>
+<p>and since A<sup>π</sup>(s, a) = r(s, a) + γE[V<sup>π</sup>(s′)] − V<sup>π</sup>(s) the hard part is again just evaluating V<sup>π</sup>(s)</p>
+</section>
+<section id="dynamic-programming">
+<h2>Dynamic Programming</h2>
+<p>Lets assume for now that we know p(s′ | s, a) and that s and a are both discrete and small, like a 4 by 4 grid with 16 states and 4 actions per state, then we can store all of V<sup>π</sup>(s) in a table and T is a 16 × 16 × 4 tensor</p>
+<p>The bootstrapped update just uses the current estimate on the right side</p>
+<div class="eq">V<sup>π</sup>(s) ← E<sub>a ~ π(a | s)</sub> [ r(s, a) + γ E<sub>s′ ~ p(s′ | s, a)</sub> [V<sup>π</sup>(s′)] ]</div>
+<p>and since our π′ is deterministic π(s) = a it simplifies to V<sup>π</sup>(s) ← r(s, π(s)) + γE<sub>s′ ~ p(s′ | s, π(s))</sub>[V<sup>π</sup>(s′)]</p>
+<p>Even simpler, argmax<sub>a</sub> A<sup>π</sup>(s, a) is the same as argmax<sub>a</sub> Q<sup>π</sup>(s, a) coz V(s) doesnt depend on a, and Q<sup>π</sup>(s, a) = r(s, a) + γE[V<sup>π</sup>(s′)] is a bit simpler to compute, so if we think of Q as a table with one row per state taking the max of each row gives us the new policy and also approximates the new value, so we skip the policy and compute values directly and that is value iteration</p>
+<div class="eq">1. set Q(s, a) ← r(s, a) + γE[V(s′)]<br>2. set V(s) ← max<sub>a</sub> Q(s, a)</div>
+</section>
+<section id="fitted-value-iteration">
+<h2>Fitted Value Iteration</h2>
+<p>Now this works but we cant have a table coz it gets way too big, an image based game with 200 × 200 pixels at 255<sup>3</sup> colours each has more states than there are atoms in the universe, that is the curse of dimensionality, so we approximate the value function with a neural net V<sub>φ</sub> : S → ℝ and regress it onto the target</p>
+<div class="eq">1. set y<sub>i</sub> ← max<sub>a<sub>i</sub></sub> ( r(s<sub>i</sub>, a<sub>i</sub>) + γE[V<sub>φ</sub>(s′<sub>i</sub>)] )<br>2. set φ ← argmin<sub>φ</sub> ½ Σ<sub>i</sub> || V<sub>φ</sub>(s<sub>i</sub>) − y<sub>i</sub> ||<sup>2</sup></div>
+<p>The catch is step 1, to take a max over actions you need to know what would happen for each different action from the same state which means you need the transition dynamics</p>
+</section>
+<section id="fitted-q-iteration">
+<h2>When We Dont Know the Dynamics: Fitted Q Iteration</h2>
+<p>So go back to policy iteration but evaluate Q instead of V</p>
+<div class="eq">Q<sup>π</sup>(s, a) ← r(s, a) + γ E<sub>s′ ~ p(s′ | s, a)</sub> [ Q<sup>π</sup>(s′, π(s′)) ]</div>
+<p>We are updating Q instead of V coz if we just deal with Q we dont need to know the transition probs at all, the expectation over s′ can be fit using samples and all we need is (s, a, s′) and the reward and thats it which is really useful, and doing the same max trick as before gives fitted Q iteration</p>
+<div class="eq">1. collect a dataset {(s<sub>i</sub>, a<sub>i</sub>, s′<sub>i</sub>, r<sub>i</sub>)} using some policy<br>2. set y<sub>i</sub> ← r(s<sub>i</sub>, a<sub>i</sub>) + γ max<sub>a′<sub>i</sub></sub> Q<sub>φ</sub>(s′<sub>i</sub>, a′<sub>i</sub>)<br>3. set φ ← argmin<sub>φ</sub> ½ Σ<sub>i</sub> || Q<sub>φ</sub>(s<sub>i</sub>, a<sub>i</sub>) − y<sub>i</sub> ||<sup>2</sup> and repeat steps 2 and 3 K times</div>
+<p>Here max<sub>a′</sub> Q<sub>φ</sub>(s′, a′) approximates E[V(s′)] and it doesnt need any simulation of different actions, you just plug every action into the network, the knobs are the dataset size N and the collection policy, the number of iterations K and the gradient steps S inside each fit, and this whole thing is off policy coz the max doesnt care which policy collected the data</p>
+</section>
+<section id="online-q-learning">
+<h2>Online Q Learning and Exploration</h2>
+<p>If you take K = 1 and one gradient step per sample you get online Q learning</p>
+<div class="eq">1. take some action a<sub>i</sub> and observe (s<sub>i</sub>, a<sub>i</sub>, s′<sub>i</sub>, r<sub>i</sub>)<br>2. y<sub>i</sub> = r(s<sub>i</sub>, a<sub>i</sub>) + γ max<sub>a′</sub> Q<sub>φ</sub>(s′<sub>i</sub>, a′)<br>3. φ ← φ − α (dQ<sub>φ</sub>/dφ)(s<sub>i</sub>, a<sub>i</sub>) (Q<sub>φ</sub>(s<sub>i</sub>, a<sub>i</sub>) − y<sub>i</sub>)</div>
+<p>The final policy is just the argmax of Q but using it in step 1 to collect data is a bad idea coz if Q is wrong early on the greedy policy keeps taking the same few actions and never finds out anything better, so we need exploration</p>
+<p>Epsilon greedy takes the argmax action with probability 1 − ε and a random other action otherwise, and Boltzmann exploration samples actions with π(a<sub>t</sub> | s<sub>t</sub>) ∝ exp(Q<sub>φ</sub>(s<sub>t</sub>, a<sub>t</sub>)) so actions that are almost as good get tried more often than ones that are clearly bad</p>
+</section>
+<section id="convergence">
+<h2>Does Any of This Converge</h2>
+<p>For tabular value iteration define an operator B where BV = max<sub>a</sub> r<sub>a</sub> + γT<sub>a</sub>V, the optimal V* is a fixed point of B ie V* = BV* and it always exists, is always unique and always matches the optimal policy, and B is a contraction in the ∞ norm ||BV − BV̄||<sub>∞</sub> ≤ γ||V − V̄||<sub>∞</sub> so every step gets us closer and tabular value iteration converges</p>
+<p>Fitted value iteration is really V ← ΠBV where Π is the projection onto whatever the neural net can represent ie the least squares fit, Π is a contraction in the ℓ<sub>2</sub> norm and B is a contraction in the ∞ norm but ΠB together is not a contraction of any kind, so fitted value iteration does not converge in general and often not in practice either, and the same goes for fitted Q iteration and online Q learning</p>
+<p>But isnt step 3 of online Q learning just gradient descent which converges right, no coz Q learning is not gradient descent, the target y<sub>i</sub> depends on φ too and we dont take a gradient through it, so it has a moving target which makes it hard for it to ever converge</p>
+<p>And a sad corollary, the critic in actor critic is doing the exact same kind of fitted bootstrapped evaluation (just without the max) so it doesnt converge in theory either, quick terminology note here V<sup>π</sup> is the value of policy π which is what the critic learns and V* is the value of the optimal policy which is what Q learning goes after</p>
+</section>
+<section id="replay-buffer">
+<h2>Correlated Samples and Replay Buffers</h2>
+<p>Online Q learning has two more problems, sequential states are strongly correlated so the network overfits to whatever part of the world it is in right now, and the target value keeps changing, one fix for the correlation is parallel workers like in actor critic and the other much more common fix is a replay buffer</p>
+<p>So basically fitted Q iteration is the whole recipe for learning from a fixed offline dataset you already collected, while a replay buffer is just the dynamic memory box that online algos like DQN use to store recent transitions and pick random mini batches from on the fly, sampling randomly from the buffer breaks the correlation and since Q learning is off policy it doesnt matter that the data came from older policies</p>
+<div class="eq">1. collect dataset {(s<sub>i</sub>, a<sub>i</sub>, s′<sub>i</sub>, r<sub>i</sub>)} using some policy and add it to B<br>2. sample a batch (s<sub>i</sub>, a<sub>i</sub>, s′<sub>i</sub>, r<sub>i</sub>) from B<br>3. φ ← φ − α Σ<sub>i</sub> (dQ<sub>φ</sub>/dφ)(s<sub>i</sub>, a<sub>i</sub>) (Q<sub>φ</sub>(s<sub>i</sub>, a<sub>i</sub>) − [r(s<sub>i</sub>, a<sub>i</sub>) + γ max<sub>a′</sub> Q<sub>φ</sub>(s′<sub>i</sub>, a′)]) and repeat 2 and 3 K times</div>
+<p>K = 1 is common though a larger K is more efficient, and you keep collecting with your latest policy like epsilon greedy so the buffer keeps growing with relevant data</p>
+</section>
+<section id="dqn">
+<h2>Target Networks and DQN</h2>
+<p>The moving target is still there so we want a mix of fitted Q iteration and the replay buffer, we save a copy of the params φ′ ← φ and compute targets with that frozen copy so the targets dont change in the inner loop and each inner loop becomes plain supervised regression</p>
+<div class="eq">1. save target network params φ′ ← φ<br>2. collect dataset {(s<sub>i</sub>, a<sub>i</sub>, s′<sub>i</sub>, r<sub>i</sub>)} using some policy and add it to B<br>3. sample a batch from B<br>4. φ ← φ − α Σ<sub>i</sub> (dQ<sub>φ</sub>/dφ)(s<sub>i</sub>, a<sub>i</sub>) (Q<sub>φ</sub>(s<sub>i</sub>, a<sub>i</sub>) − [r(s<sub>i</sub>, a<sub>i</sub>) + γ max<sub>a′</sub> Q<sub>φ′</sub>(s′<sub>i</sub>, a′)])</div>
+<p>The classic DQN from Mnih et al is just this with K = 1, take one action and add it to the buffer, sample a mini batch uniformly, compute y<sub>j</sub> = r<sub>j</sub> + γ max<sub>a′<sub>j</sub></sub> Q<sub>φ′</sub>(s′<sub>j</sub>, a′<sub>j</sub>) using the target network, take a gradient step and copy φ into φ′ every N steps, a smoother option is Polyak averaging φ′ ← τφ′ + (1 − τ)φ every step with τ like 0.999 so the target lags behind by the same amount all the time</p>
+</section>
+<section id="double-q">
+<h2>Overestimation and Double Q Learning</h2>
+<p>Q learning tends to overestimate values and the reason is that E[max(X<sub>1</sub>, X<sub>2</sub>)] ≥ max(E[X<sub>1</sub>], E[X<sub>2</sub>]), our Q values are noisy and taking a max over noisy numbers picks whichever one got lucky noise so the target is biased upwards</p>
+<p>Look at max<sub>a′</sub> Q<sub>φ′</sub>(s′, a′) = Q<sub>φ′</sub>(s′, argmax<sub>a′</sub> Q<sub>φ′</sub>(s′, a′)), the action is selected by Q<sub>φ′</sub> and the value also comes from Q<sub>φ′</sub> so the same noise gets used twice, if the noise in those two were decorrelated the problem goes away, so dont use the same network to choose the action and to evaluate it</p>
+<p>Double Q learning uses two networks that each pick the action for the other, and in practice you dont even need a new network, just use the current network to pick the action and the target network to evaluate it</p>
+<div class="eq">standard &nbsp; y = r + γ Q<sub>φ′</sub>(s′, argmax<sub>a′</sub> Q<sub>φ′</sub>(s′, a′))<br>double &nbsp; y = r + γ Q<sub>φ′</sub>(s′, argmax<sub>a′</sub> Q<sub>φ</sub>(s′, a′))</div>
+</section>
+<section id="n-step-q">
+<h2>Multi Step Returns in Q Learning</h2>
+<p>In the target y = r + γ max Q<sub>φ′</sub> if Q<sub>φ′</sub> is bad then r is the only part giving real signal and if Q<sub>φ′</sub> is good then the max part matters most, so Q learning by default is max bias and min variance, just like the actor critic case from part 3, and we can do the same n step trick</p>
+<div class="eq">y<sub>j,t</sub> = Σ<sub>t′=t</sub><sup>t+N−1</sup> γ<sup>t′−t</sup> r<sub>j,t′</sub> + γ<sup>N</sup> max<sub>a<sub>j,t+N</sub></sub> Q<sub>φ′</sub>(s<sub>j,t+N</sub>, a<sub>j,t+N</sub>)</div>
+<p>which gives less biased targets when Q is inaccurate and usually faster learning especially early on, but it is only actually correct when learning on policy coz those N real rewards came from whatever old policy was in the buffer and not the greedy one we are evaluating, the fixes are to just ignore it which often works well, or cut the trace by picking N on the fly so only on policy data is used, which works when the data is mostly on policy and the action space is small</p>
+</section>
+<section id="continuous-actions">
+<h2>Q Learning with Continuous Actions</h2>
+<p>The max over actions is easy when there are a few discrete actions but with continuous actions it is an optimization problem inside every single update, there are three options</p>
+<p>Option 1 is stochastic optimization, the simple solution is max<sub>a</sub> Q(s, a) ≈ max{Q(s, a<sub>1</sub>), …, Q(s, a<sub>N</sub>)} with the actions sampled from like a uniform distribution, it is dead simple and easy to parallelize but not very accurate, though do we even care how good the target is, for something more accurate there is the cross entropy method (CEM) which is a simple iterative stochastic optimization and works ok up to about 40 dimensions, and CMA-ES which is a much less simple version</p>
+<p>Option 2 is to use a function class that is easy to optimize, NAF (normalized advantage functions) makes Q quadratic in the action so the max has a closed form</p>
+<div class="eq">Q<sub>φ</sub>(s, a) = −½ (a − μ<sub>φ</sub>(s))<sup>T</sup> P<sub>φ</sub>(s) (a − μ<sub>φ</sub>(s)) + V<sub>φ</sub>(s)<br>argmax<sub>a</sub> Q<sub>φ</sub>(s, a) = μ<sub>φ</sub>(s) &nbsp;&nbsp;&nbsp; max<sub>a</sub> Q<sub>φ</sub>(s, a) = V<sub>φ</sub>(s)</div>
+<p>which changes nothing in the algorithm but makes the Q function less expressive</p>
+<p>Option 3 is to learn an approximate maximizer, DDPG trains another network μ<sub>θ</sub>(s) ≈ argmax<sub>a</sub> Q<sub>φ</sub>(s, a) by solving θ ← argmax<sub>θ</sub> Q<sub>φ</sub>(s, μ<sub>θ</sub>(s)) with the chain rule dQ<sub>φ</sub>/dθ = (da/dθ)(dQ<sub>φ</sub>/da), it is called deterministic actor critic but it really is approximate Q learning</p>
+<div class="eq">1. take some action a<sub>i</sub> and observe (s<sub>i</sub>, a<sub>i</sub>, s′<sub>i</sub>, r<sub>i</sub>) and add it to B<br>2. sample a mini batch {s<sub>j</sub>, a<sub>j</sub>, s′<sub>j</sub>, r<sub>j</sub>} from B uniformly<br>3. compute y<sub>j</sub> = r<sub>j</sub> + γQ<sub>φ′</sub>(s′<sub>j</sub>, μ<sub>θ′</sub>(s′<sub>j</sub>)) using target nets Q<sub>φ′</sub> and μ<sub>θ′</sub><br>4. φ ← φ − α Σ<sub>j</sub> (dQ<sub>φ</sub>/dφ)(s<sub>j</sub>, a<sub>j</sub>) (Q<sub>φ</sub>(s<sub>j</sub>, a<sub>j</sub>) − y<sub>j</sub>)<br>5. θ ← θ + β Σ<sub>j</sub> (dμ/dθ)(s<sub>j</sub>) (dQ<sub>φ</sub>/da)(s<sub>j</sub>, μ(s<sub>j</sub>))<br>6. update φ′ and θ′ eg with Polyak averaging</div>
+</section>
+<section id="q-learning-tips">
+<h2>Practical Tips for Q Learning</h2>
+<p>Bellman error gradients can get huge so clip the gradients or use the Huber loss which is quadratic near zero and linear further out so big errors dont blow up the update</p>
+<div class="eq">L(x) = x<sup>2</sup>/2 if |x| ≤ δ &nbsp;&nbsp; and &nbsp;&nbsp; δ|x| − δ<sup>2</sup>/2 otherwise</div>
+<p>Double Q learning helps a lot in practice and is simple with no real downside, n step returns also help a lot but have the downsides from above, schedule exploration and learning rates from high to low and Adam helps too, and run multiple random seeds coz Q learning is very inconsistent between runs</p>
+</section>
+<p class="crumb" style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:2.5rem"><span><a href="garden-rl3.html">&larr; part 3: actor critic</a></span><span><a href="garden-rl5.html">part 5: advanced policy gradients and planning &rarr;</a></span></p>
+
+</main>
+<footer>
+  <span>© 2026 Krrish Bhasin</span>
+</footer>
+</div>
+</body>
+</html>
