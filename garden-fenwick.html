@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fenwick Trees, Binary Lifting and LCA - Krrish Bhasin</title>
+<meta name="description" content="Fenwick trees and the lowbit trick, coordinate compression, binary lifting for k-th ancestors and LCA on trees.">
+<link rel="stylesheet" href="style.css?v=11">
+</head>
+<body class="notes">
+<div class="page">
+<header>
+  <a class="brand" href="index.html">Krrish Bhasin</a>
+  <nav>
+    <a href="index.html">home</a>
+    <a href="ml.html">machine learning</a>
+    <a href="garden.html" class="active">garden</a>
+    <a href="horror.html">horror</a>
+  </nav>
+</header>
+<main>
+<p class="crumb"><a href="garden.html">&larr; garden</a></p>
+<h1>Fenwick Trees, Binary Lifting &amp; LCA</h1>
+<p class="postmeta">competitive programming · my notes</p>
+<details class="toc" open><summary>contents</summary><ol>
+<li><a href="#fenwick-motivation">1.1 Fenwick Tree: Motivation &amp; Problem Setup</a></li>
+<li><a href="#lowbit">1.2 The Lowbit / LSB Trick</a></li>
+<li><a href="#fenwick-template">1.3 Standard Implementation (1 indexed)</a></li>
+<li><a href="#fenwick-usage">1.4 How to Use the Template</a></li>
+<li><a href="#trees">2.1 Binary Lifting: Trees</a></li>
+<li><a href="#kth-ancestor-motivation">2.2 Motivation: K-th Ancestor</a></li>
+<li><a href="#lifting-precomputation">2.3 Precomputation</a></li>
+<li><a href="#kth-ancestor-query">2.4 K-th Ancestor Query</a></li>
+<li><a href="#augmented-lifting">2.5 Augmented Binary Lifting</a></li>
+<li><a href="#what-is-lca">3.1 What is LCA?</a></li>
+<li><a href="#lca-binary-lifting">3.2 LCA via Binary Lifting</a></li>
+<li><a href="#lca-patterns">3.3 LCA: Key Problem Patterns</a></li>
+</ol></details>
+<section id="fenwick-motivation">
+<h2>1.1 Fenwick Tree: Motivation &amp; Problem Setup</h2>
+<p>Suppose you are given an array of N integers and you must handle two types of queries repeatedly:</p>
+<ul>
+<li><strong>Point Update:</strong> add a value val to arr[i].</li>
+<li><strong>Range Sum Query:</strong> compute arr[l] + arr[l+1] + … + arr[r].</li>
+</ul>
+<p>A brute force solution takes O(1) update and O(N) query, or O(N) update (prefix array) and O(1) query. Neither is efficient enough when both operations are frequent. A Fenwick Tree (Binary Indexed Tree) solves both in O(log N), using only O(N) extra space, which is less memory than a Segment Tree and simpler to code.</p>
+</section>
+<section id="lowbit">
+<h2>1.2 The Lowbit / LSB Trick</h2>
+<p>The key to understanding a Fenwick Tree is i &amp; (−i), which extracts the lowest set bit of i, telling us how many elements are covered at that index.</p>
+<pre>idx        1  2  3  4  5  6  7  8
+arr[idx]   3  1  4  1  5  9  2  6</pre>
+<p>The Bit vector stores partial sums in a way that each index i is responsible for a range [l, r] determined by its lowest set bit, and bit[i] = arr[l] + … + arr[r]. To find l and r: r = i, and for l take i in binary, unset the lowest bit and add 1. E.g. i = 6 is 0110, unset the lowest bit → 0100, add 1 → 0101 (5). So for i = 6, l = 5 and r = 6.</p>
+<pre>i        1      2      3      4      5      6      7      8
+[l,r]  [1,1]  [1,2]  [3,3]  [1,4]  [5,5]  [5,6]  [7,7]  [1,8]</pre>
+<figure class="diagram"><svg viewBox="0 0 460 190" role="img" aria-label="ranges covered by each Fenwick index for n = 8"><text x="20" y="178" class="cap">idx</text><text x="70" y="178" text-anchor="middle">1</text><text x="120" y="178" text-anchor="middle">2</text><text x="170" y="178" text-anchor="middle">3</text><text x="220" y="178" text-anchor="middle">4</text><text x="270" y="178" text-anchor="middle">5</text><text x="320" y="178" text-anchor="middle">6</text><text x="370" y="178" text-anchor="middle">7</text><text x="420" y="178" text-anchor="middle">8</text><rect class="b" x="48" y="136" width="44" height="22"/><text x="70" y="151" text-anchor="middle" class="cap">bit[1]</text><rect class="b" x="148" y="136" width="44" height="22"/><text x="170" y="151" text-anchor="middle" class="cap">bit[3]</text><rect class="b" x="248" y="136" width="44" height="22"/><text x="270" y="151" text-anchor="middle" class="cap">bit[5]</text><rect class="b" x="348" y="136" width="44" height="22"/><text x="370" y="151" text-anchor="middle" class="cap">bit[7]</text><rect class="b" x="48" y="102" width="94" height="22"/><text x="95" y="117" text-anchor="middle" class="cap">bit[2]</text><rect class="hi" x="248" y="102" width="94" height="22"/><text x="295" y="117" text-anchor="middle" class="cap">bit[6]</text><rect class="hi" x="48" y="68" width="194" height="22"/><text x="145" y="83" text-anchor="middle" class="cap">bit[4]</text><rect class="b" x="48" y="34" width="394" height="22"/><text x="245" y="49" text-anchor="middle" class="cap">bit[8]</text><text x="245" y="20" text-anchor="middle" class="cap">shaded: the two cells prefix_sum(6) adds up</text></svg></figure>
+<p>So for i = 4, bit[4] = arr[1] + arr[2] + arr[3] + arr[4] = 3 + 1 + 4 + 1 = 9.</p>
+<pre>idx        1  2  3  4  5   6  7   8
+bit[idx]   3  4  4  9  5  14  2  31</pre>
+<p>For any index i, the trick is 2's complement negation. To compute −i, you flip all bits and add 1. When you AND that with i, all higher bits cancel and only the lowest set bit survives. That single bit tells you how many elements bit[i] is responsible for.</p>
+<div class="eq">lowbit(i) = i &amp; (−i), which isolates the lowest set bit</div>
+<p>The range is always [i − lowbit(i) + 1, i], i.e. it ends at i and stretches left by lowbit(i) positions.</p>
+<pre>operation          complexity
+update(i, delta)   O(log N)
+query(l, r)        O(log N)
+space              O(N)</pre>
+<p>To find the prefix sum of arr[1..6], we start at i = 6, whose binary representation is 0110. We can think of 0110 as 0100 + 0010, i.e. 4 + 2. This decomposition is exactly what the query loop does, at each step it strips the lowest set bit and jumps left:</p>
+<ul>
+<li>i = 6 → lowbit(6) = 2, so bit[6] covers arr[5..6]. Add bit[6] = 14. Move to i = 6 − 2 = 4.</li>
+<li>i = 4 → lowbit(4) = 4, so bit[4] covers arr[1..4]. Add bit[4] = 9. Move to i = 4 − 4 = 0. Stop.</li>
+</ul>
+<p>So prefix_sum(6) = 14 + 9 = 23. The key insight is that the binary bits of 6 (0110) directly tell you which bit cells to visit, each set bit corresponds to one bit cell, and together they tile arr[1..6] with no gaps and no overlaps.</p>
+<p>Update goes the other way: adding lowbit(i) to i jumps to the next cell whose range also contains i, so a point update touches every cell that covers it, again O(log N) of them.</p>
+</section>
+<section id="fenwick-template">
+<h2>1.3 Standard Implementation (1 indexed)</h2>
+<p>Always use 1 indexed arrays with a BIT. Index 0 is never touched (lowbit(0) = 0, so the loops would never move). Use this template for Fenwick tree questions:</p>
+<pre>struct fenwick {
+public:
+    int n;
+    vector&lt;int&gt; bit;
+
+    fenwick(int size) {
+        n = size;
+        bit.assign(n + 1, 0);
+    }
+
+    void update(int i, int val) {
+        while (i &lt;= n) {
+            bit[i] += val;
+            i += (i &amp; (-i));
+        }
+    }
+
+    int query(int i) {          // prefix sum arr[1..i]
+        int ans = 0;
+        while (i) {
+            ans += bit[i];
+            i -= (i &amp; (-i));
+        }
+        return ans;
+    }
+};</pre>
+<p>A range sum is then just two prefix sums: sum(l, r) = query(r) − query(l − 1).</p>
+</section>
+<section id="fenwick-usage">
+<h2>1.4 How to Use the Template</h2>
+<p>The way you initialise and use the Fenwick tree depends on the size of the values you are dealing with.</p>
+<p><strong>Case 1: values ≤ 10⁵.</strong> The values are small enough to be used directly as indices, so no compression is needed. Simply declare <code>fenwick ft(n);</code> and use <code>ft.update(i, val)</code> and <code>ft.query(i)</code> directly with the values.</p>
+<p><strong>Case 2: values ≤ 10⁹.</strong> The values are too large to use as indices, so we first compress them down to a small range:</p>
+<pre>vector&lt;int&gt; val = arr;
+sort(val.begin(), val.end());
+val.erase(unique(val.begin(), val.end()), val.end());
+
+fenwick ft(val.size());
+int ans = 0;
+for (int i = 0; i &lt; n; i++) {
+    // compressed index of arr[i] (1 indexed)
+    int idx = lower_bound(val.begin(), val.end(), arr[i]) - val.begin() + 1;
+
+    // ft.query(idx) = count of elements inserted so far with value &lt;= arr[i]
+    ans += ft.query(idx);
+    ft.update(idx, 1);
+}
+cout &lt;&lt; ans &lt;&lt; endl;</pre>
+<p>The key idea is that lower_bound maps each original value to its rank in the sorted unique array, giving it a compressed index between 1 and val.size(). The Fenwick tree then operates on these small indices instead of the raw values, keeping everything efficient.</p>
+</section>
+<section id="trees">
+<h2>2.1 Binary Lifting: Trees</h2>
+<p>A tree is a connected acyclic graph with N nodes and N − 1 edges. We usually root it at node 1. Key terms:</p>
+<ul>
+<li><strong>Parent:</strong> the node immediately above a given node on the path to the root.</li>
+<li><strong>Depth:</strong> depth[root] = 0; depth[v] = depth[parent[v]] + 1.</li>
+<li><strong>Ancestor:</strong> node u is an ancestor of v if u lies on the path from v to the root.</li>
+</ul>
+</section>
+<section id="kth-ancestor-motivation">
+<h2>2.2 Motivation: K-th Ancestor</h2>
+<p>Given a rooted tree, answer Q queries of the form "what is the k-th ancestor of node v?"</p>
+<p>Naive: walk up k steps, O(N) per query, O(NQ) total. For N, Q = 10⁵ this is too slow.</p>
+<p>Binary Lifting precomputes up[v][j] = the 2<sup>j</sup>-th ancestor of v, for j = 0, 1, …, LOG − 1. Then any k-th ancestor can be found in O(log N) by decomposing k in binary, the same idea as the Fenwick query above.</p>
+<p><strong>Very important:</strong> binary lifting doesn't work if updates to the tree are involved, since the whole table would have to be rebuilt.</p>
+</section>
+<section id="lifting-precomputation">
+<h2>2.3 Precomputation</h2>
+<pre>const int MAXN = 1e5 + 5;
+const int LOG  = 20;
+
+int up[MAXN][LOG];     // up[v][j] = 2^j-th ancestor of v
+int depth[MAXN];
+vector&lt;int&gt; g[MAXN];
+
+void dfs(int v, int par) {
+    up[v][0] = par;
+    for (int j = 1; j &lt; LOG; j++)
+        up[v][j] = up[ up[v][j-1] ][j-1];
+
+    for (int child : g[v]) {
+        if (child != par) {
+            depth[child] = depth[v] + 1;
+            dfs(child, v);
+        }
+    }
+}
+
+// depth[root] = 0; up[root][j] = root for all j
+// dfs(root, root);</pre>
+<p>The recurrence is up[v][j] = up[up[v][j−1]][j−1], i.e. the 2<sup>j</sup>-th ancestor is the 2<sup>j−1</sup>-th ancestor of the 2<sup>j−1</sup>-th ancestor. It works inside the DFS because a node's ancestors are always visited before it, so their rows are already filled in.</p>
+</section>
+<section id="kth-ancestor-query">
+<h2>2.4 K-th Ancestor Query</h2>
+<pre>int kth_ancestor(int v, int k) {
+    for (int j = 0; j &lt; LOG; j++)
+        if ((k &gt;&gt; j) &amp; 1)       // j-th bit of k is set
+            v = up[v][j];
+    return v;
+}</pre>
+<p>For example 11 = 1011₂, so bits 0, 1 and 3 are set:</p>
+<ul>
+<li>Step 1: move 2⁰ = 1 step: v = up[v][0]</li>
+<li>Step 2: move 2¹ = 2 steps: v = up[v][1]</li>
+<li>Step 3: move 2³ = 8 steps: v = up[v][3]</li>
+</ul>
+<p>Total: 1 + 2 + 8 = 11 steps.</p>
+</section>
+<section id="augmented-lifting">
+<h2>2.5 Augmented Binary Lifting</h2>
+<p>You can store extra information along the path. Common extensions:</p>
+<ul>
+<li><strong>Max edge weight:</strong> up_max[v][j] = max edge weight on the path from v to its 2<sup>j</sup>-th ancestor.</li>
+<li><strong>Min edge weight:</strong> similarly up_min[v][j].</li>
+<li><strong>Sum of values:</strong> up_sum[v][j] = sum of node values from v up to (but not including) its 2<sup>j</sup>-th ancestor.</li>
+</ul>
+<pre>int up_max[MAXN][LOG];
+
+// during DFS:
+up_max[v][0] = weight of edge (v, parent[v]);
+for (int j = 1; j &lt; LOG; j++)
+    up_max[v][j] = max(up_max[v][j-1], up_max[ up[v][j-1] ][j-1]);</pre>
+<p>This works for any operation where two halves of a jump can be combined, which is the same condition a segment tree needs.</p>
+</section>
+<section id="what-is-lca">
+<h2>3.1 What is LCA?</h2>
+<p>Given a rooted tree, the Lowest Common Ancestor (LCA) of two nodes u and v is the deepest node that is an ancestor of both u and v.</p>
+<p>Think of a family tree. lca(u, v) is the most recent common ancestor, the first node where the paths from u to root and v to root meet.</p>
+<div class="eq">dist(u, v) = depth[u] + depth[v] − 2 × depth[lca(u, v)]</div>
+<p>This single formula converts path distance queries into LCA queries.</p>
+</section>
+<section id="lca-binary-lifting">
+<h2>3.2 LCA via Binary Lifting</h2>
+<p>This is the most important application of binary lifting in competitive programming.</p>
+<pre>int lca(int u, int v) {
+    // 1. bring u and v to the same depth
+    if (depth[u] &lt; depth[v]) swap(u, v);
+    int diff = depth[u] - depth[v];
+    for (int j = 0; j &lt; LOG; j++)
+        if ((diff &gt;&gt; j) &amp; 1)
+            u = up[u][j];
+
+    // 2. if they are the same node, we're done
+    if (u == v) return u;
+
+    // 3. lift both until their parents match
+    for (int j = LOG - 1; j &gt;= 0; j--)
+        if (up[u][j] != up[v][j]) {
+            u = up[u][j];
+            v = up[v][j];
+        }
+
+    return up[u][0];
+}</pre>
+<p>Step 3 is subtle: we go from LOG − 1 down to 0, always jumping when it is safe (up[u][j] ≠ up[v][j]). This guarantees u and v end up as the children of the LCA, not above it. If we jumped whenever the ancestors were equal we could overshoot to some common ancestor higher up, so we only ever jump to nodes that are still different and the answer is one step above where we stop.</p>
+<pre>operation                complexity
+precomputation           O(N log N) time, O(N log N) space
+lca(u, v)                O(log N)
+dist(u, v)               O(log N)
+path max/min edge        O(log N) with augmented lifting</pre>
+</section>
+<section id="lca-patterns">
+<h2>3.3 LCA: Key Problem Patterns</h2>
+<p><strong>Pattern 1: path queries on trees.</strong> Any query of the form "compute something over the path from u to v" can be split at the LCA:</p>
+<ul>
+<li>path(u, v) = path(u, lca) + path(v, lca)</li>
+<li>With a BIT on DFS in-time (Euler tour), you can compute prefix sums from the root, then sum(u, v) = prefix(u) + prefix(v) − prefix(lca) − prefix(parent(lca)).</li>
+</ul>
+<p><strong>Pattern 2: tree distance queries.</strong></p>
+<pre>int dist(int u, int v) {
+    return depth[u] + depth[v] - 2 * depth[lca(u, v)];
+}</pre>
+<p><strong>Pattern 3: counting nodes on a path.</strong> Nodes on path(u, v) = depth[u] + depth[v] − 2 × depth[lca] + 1.</p>
+</section>
+
+</main>
+<footer>
+  <span>© 2026 Krrish Bhasin</span>
+</footer>
+</div>
+</body>
+</html>

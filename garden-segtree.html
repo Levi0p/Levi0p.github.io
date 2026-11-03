@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Segment Trees - Krrish Bhasin</title>
+<meta name="description" content="Segment trees: build, point update, range query, choosing the operation, lazy propagation and when to use one over a Fenwick tree.">
+<link rel="stylesheet" href="style.css?v=11">
+</head>
+<body class="notes">
+<div class="page">
+<header>
+  <a class="brand" href="index.html">Krrish Bhasin</a>
+  <nav>
+    <a href="index.html">home</a>
+    <a href="ml.html">machine learning</a>
+    <a href="garden.html" class="active">garden</a>
+    <a href="horror.html">horror</a>
+  </nav>
+</header>
+<main>
+<p class="crumb"><a href="garden.html">&larr; garden</a></p>
+<h1>Segment Trees</h1>
+<p class="postmeta">competitive programming · my notes</p>
+<details class="toc" open><summary>contents</summary><ol>
+<li><a href="#segtree-motivation">1.1 Motivation &amp; Problem Setup</a></li>
+<li><a href="#segtree-structure">1.2 The Structure</a></li>
+<li><a href="#segtree-build">1.3 Build</a></li>
+<li><a href="#segtree-update">1.4 Point Update</a></li>
+<li><a href="#segtree-query">1.5 Range Query</a></li>
+<li><a href="#segtree-template">1.6 Standard Implementation</a></li>
+<li><a href="#segtree-operations">1.7 Choosing the Operation</a></li>
+<li><a href="#lazy-propagation">1.8 Range Updates with Lazy Propagation</a></li>
+<li><a href="#segtree-vs-fenwick">1.9 Segment Tree vs Fenwick Tree</a></li>
+</ol></details>
+<section id="segtree-motivation">
+<h2>1.1 Motivation &amp; Problem Setup</h2>
+<p>Same setup as the Fenwick tree: an array of N integers with two types of queries repeated many times:</p>
+<ul>
+<li><strong>Point Update:</strong> set arr[i] = val (or add to it).</li>
+<li><strong>Range Query:</strong> compute f(arr[l], arr[l+1], …, arr[r]) where f can be sum, min, max, gcd, xor and so on.</li>
+</ul>
+<p>A Fenwick tree handles sums really well because a range sum is just query(r) − query(l − 1), but that trick needs the operation to be invertible. There is no way to "subtract" a min, so range minimum with updates doesn't fit a BIT. A Segment Tree solves this. It works for any associative operation, answers both queries in O(log N), and takes O(N) space (an array of size 4N). The cost is more code and more memory than a BIT.</p>
+</section>
+<section id="segtree-structure">
+<h2>1.2 The Structure</h2>
+<p>A segment tree is a binary tree where every node is responsible for a range of the array and stores the answer for that range. The root covers [0, n − 1], and a node covering [l, r] splits at mid = (l + r) / 2 into a left child covering [l, mid] and a right child covering [mid + 1, r]. The leaves are single elements.</p>
+<p>We store it in a plain array like a heap: the root is node 1, and the children of node k are 2k and 2k + 1. Using the same array as before with sum as the operation:</p>
+<pre>idx        0  1  2  3  4  5  6  7
+arr[idx]   3  1  4  1  5  9  2  6</pre>
+<figure class="diagram"><svg viewBox="0 0 520 210" role="img" aria-label="sum segment tree over eight elements"><rect class="b" x="220" y="10" width="80" height="26" rx="4"/><text x="260" y="28" text-anchor="middle">31 [0,7]</text><path class="arr" d="M245 36 L140 62 M275 36 L380 62"/><rect class="b" x="100" y="62" width="80" height="26" rx="4"/><text x="140" y="80" text-anchor="middle">9 [0,3]</text><rect class="hi" x="340" y="62" width="80" height="26" rx="4"/><text x="380" y="80" text-anchor="middle">22 [4,7]</text><path class="arr" d="M125 88 L75 114 M155 88 L205 114 M365 88 L315 114 M395 88 L445 114"/><rect class="b" x="40" y="114" width="70" height="26" rx="4"/><text x="75" y="132" text-anchor="middle">4 [0,1]</text><rect class="hi" x="170" y="114" width="70" height="26" rx="4"/><text x="205" y="132" text-anchor="middle">5 [2,3]</text><rect class="b" x="280" y="114" width="70" height="26" rx="4"/><text x="315" y="132" text-anchor="middle">14 [4,5]</text><rect class="b" x="410" y="114" width="70" height="26" rx="4"/><text x="445" y="132" text-anchor="middle">8 [6,7]</text><text x="35" y="162" class="cap">leaves</text><text x="75" y="162" class="cap">3</text><text x="95" y="162" class="cap">1</text><text x="190" y="162" class="cap">4</text><text x="220" y="162" class="cap">1</text><text x="300" y="162" class="cap">5</text><text x="330" y="162" class="cap">9</text><text x="430" y="162" class="cap">2</text><text x="460" y="162" class="cap">6</text><text x="260" y="196" text-anchor="middle" class="cap">shaded: the two nodes that answer sum(2, 7) = 5 + 22 = 27</text></svg></figure>
+<p>Why size 4N? The tree has height ⌈log₂ N⌉ and when N isn't a power of two the last level is partly empty, so the highest node index can go up to just under 4N. Allocating 4N is the safe standard.</p>
+</section>
+<section id="segtree-build">
+<h2>1.3 Build</h2>
+<p>Build is a simple recursion: build both children, then combine them. Every node is visited once, so it is O(N).</p>
+<pre>void build(int node, int l, int r) {
+    if (l == r) {
+        tree[node] = arr[l];
+        return;
+    }
+    int mid = (l + r) / 2;
+    build(2*node, l, mid);
+    build(2*node+1, mid+1, r);
+    tree[node] = tree[2*node] + tree[2*node+1];
+}
+// build(1, 0, n-1);</pre>
+</section>
+<section id="segtree-update">
+<h2>1.4 Point Update</h2>
+<p>To change arr[i] we walk from the root down to the leaf for i, always going into the child whose range contains i, then fix every node on the way back up. Only the nodes on that one root to leaf path change, so it is O(log N).</p>
+<pre>void update(int node, int l, int r, int i, int val) {
+    if (l == r) {
+        tree[node] = val;
+        return;
+    }
+    int mid = (l + r) / 2;
+    if (i &lt;= mid) update(2*node, l, mid, i, val);
+    else          update(2*node+1, mid+1, r, i, val);
+    tree[node] = tree[2*node] + tree[2*node+1];
+}</pre>
+<p>Compare this with the Fenwick update: there you jump i += lowbit(i) through the cells that cover i, here you walk down the path of nodes that cover i. Same idea, different layout.</p>
+</section>
+<section id="segtree-query">
+<h2>1.5 Range Query</h2>
+<p>To answer [ql, qr] we start at the root and for every node [l, r] there are only three cases:</p>
+<ul>
+<li><strong>No overlap</strong> (r &lt; ql or l &gt; qr): this node contributes nothing, return the identity (0 for sum).</li>
+<li><strong>Full overlap</strong> (ql ≤ l and r ≤ qr): the whole node is inside the query, return tree[node] directly without going deeper.</li>
+<li><strong>Partial overlap:</strong> ask both children and combine.</li>
+</ul>
+<pre>int query(int node, int l, int r, int ql, int qr) {
+    if (r &lt; ql || l &gt; qr) return 0;              // no overlap
+    if (ql &lt;= l &amp;&amp; r &lt;= qr) return tree[node];   // full overlap
+    int mid = (l + r) / 2;                         // partial overlap
+    return query(2*node, l, mid, ql, qr)
+         + query(2*node+1, mid+1, r, ql, qr);
+}</pre>
+<p>For sum(2, 7) on the tree above: the root [0, 7] partially overlaps, so go to both children. [0, 3] partially overlaps, its child [0, 1] has no overlap (returns 0) and [2, 3] fully overlaps (returns 5). [4, 7] fully overlaps (returns 22). Answer = 5 + 22 = 27.</p>
+<p>Why is this O(log N)? At any depth, at most two nodes are partial overlaps (the ones containing the left and right edges of the query), and every node in between is a full overlap that stops immediately. So we touch at most about 4 nodes per level, and there are log N levels.</p>
+<pre>operation            complexity
+build                O(N)
+update(i, val)       O(log N)
+query(l, r)          O(log N)
+space                O(4N)</pre>
+</section>
+<section id="segtree-template">
+<h2>1.6 Standard Implementation</h2>
+<p>Use this template for segment tree questions. Everything specific to the problem lives in combine and the identity value, so changing the operation means changing two lines.</p>
+<pre>struct segtree {
+public:
+    int n;
+    vector&lt;int&gt; tree;
+    const int IDENTITY = 0;              // 0 for sum, INT_MAX for min, INT_MIN for max
+
+    int combine(int a, int b) {
+        return a + b;                    // a + b, min(a, b), max(a, b), gcd(a, b) ...
+    }
+
+    segtree(vector&lt;int&gt;&amp; arr) {
+        n = arr.size();
+        tree.assign(4*n, IDENTITY);
+        build(arr, 1, 0, n-1);
+    }
+
+    void build(vector&lt;int&gt;&amp; arr, int node, int l, int r) {
+        if (l == r) { tree[node] = arr[l]; return; }
+        int mid = (l + r) / 2;
+        build(arr, 2*node, l, mid);
+        build(arr, 2*node+1, mid+1, r);
+        tree[node] = combine(tree[2*node], tree[2*node+1]);
+    }
+
+    void update(int node, int l, int r, int i, int val) {
+        if (l == r) { tree[node] = val; return; }
+        int mid = (l + r) / 2;
+        if (i &lt;= mid) update(2*node, l, mid, i, val);
+        else          update(2*node+1, mid+1, r, i, val);
+        tree[node] = combine(tree[2*node], tree[2*node+1]);
+    }
+
+    int query(int node, int l, int r, int ql, int qr) {
+        if (r &lt; ql || l &gt; qr) return IDENTITY;
+        if (ql &lt;= l &amp;&amp; r &lt;= qr) return tree[node];
+        int mid = (l + r) / 2;
+        return combine(query(2*node, l, mid, ql, qr),
+                       query(2*node+1, mid+1, r, ql, qr));
+    }
+
+    // wrappers so the call site stays clean
+    void update(int i, int val) { update(1, 0, n-1, i, val); }
+    int query(int l, int r)     { return query(1, 0, n-1, l, r); }
+};</pre>
+<p>Note the segment tree here is 0 indexed while the Fenwick tree was 1 indexed. Both are fine, just be consistent inside each one.</p>
+</section>
+<section id="segtree-operations">
+<h2>1.7 Choosing the Operation</h2>
+<p>The only rule is that combine must be associative, i.e. combine(combine(a, b), c) = combine(a, combine(b, c)), because the tree splits a range wherever mid falls and we need the answer not to depend on how it was split. The identity must satisfy combine(x, IDENTITY) = x so that "no overlap" nodes don't change the answer.</p>
+<pre>operation   combine        identity
+sum         a + b          0
+min         min(a, b)      INT_MAX
+max         max(a, b)      INT_MIN
+gcd         gcd(a, b)      0
+xor         a ^ b          0</pre>
+<p>Nodes can also store more than one number. For example storing (max, count of max) lets you answer "how many times does the maximum appear in [l, r]", as long as you can write a combine for two such pairs.</p>
+</section>
+<section id="lazy-propagation">
+<h2>1.8 Range Updates with Lazy Propagation</h2>
+<p>Now suppose the update is also a range: add val to every element in [l, r]. Doing a point update for each element is O(N log N) per update which is too slow.</p>
+<p>The idea of lazy propagation is to be lazy: when an update fully covers a node, update that node's value and leave a note (lazy[node]) saying "my children still owe this update", without going further down. The note is only pushed to the children later, when some query or update actually needs to go inside that node.</p>
+<pre>vector&lt;long long&gt; tree, lazy;            // both size 4N, range add + range sum
+
+void push(int node, int l, int r) {
+    if (lazy[node] == 0) return;
+    int mid = (l + r) / 2;
+    for (int c : {2*node, 2*node+1}) {
+        int len = (c == 2*node) ? (mid - l + 1) : (r - mid);
+        tree[c] += lazy[node] * len;
+        lazy[c] += lazy[node];
+    }
+    lazy[node] = 0;
+}
+
+void range_add(int node, int l, int r, int ql, int qr, long long val) {
+    if (r &lt; ql || l &gt; qr) return;
+    if (ql &lt;= l &amp;&amp; r &lt;= qr) {
+        tree[node] += val * (r - l + 1);   // every element in this node got +val
+        lazy[node] += val;                 // children still owe +val
+        return;
+    }
+    push(node, l, r);
+    int mid = (l + r) / 2;
+    range_add(2*node, l, mid, ql, qr, val);
+    range_add(2*node+1, mid+1, r, ql, qr, val);
+    tree[node] = tree[2*node] + tree[2*node+1];
+}
+
+long long query(int node, int l, int r, int ql, int qr) {
+    if (r &lt; ql || l &gt; qr) return 0;
+    if (ql &lt;= l &amp;&amp; r &lt;= qr) return tree[node];
+    push(node, l, r);
+    int mid = (l + r) / 2;
+    return query(2*node, l, mid, ql, qr) + query(2*node+1, mid+1, r, ql, qr);
+}</pre>
+<p>Range updates touch the same O(log N) nodes as a range query, so both range update and range query stay O(log N). The two things to get right are the length multiplier (adding val to a node of sum covering k elements adds val × k) and calling push before going into the children.</p>
+</section>
+<section id="segtree-vs-fenwick">
+<h2>1.9 Segment Tree vs Fenwick Tree</h2>
+<pre>                      fenwick tree          segment tree
+point update          O(log N)              O(log N)
+range query           O(log N)              O(log N)
+operations            invertible (sum, xor) any associative (min, max, gcd ...)
+range update          possible with tricks  lazy propagation
+memory                N + 1                 4N
+code                  ~15 lines             ~40 lines</pre>
+<p>Rule of thumb: if it's sums (or counts, like the inversion counting with compression in the Fenwick notes), use a Fenwick tree because it is shorter and faster. If it's min, max, gcd, anything that can't be undone, or range updates, use a segment tree. And for path queries on trees the two combine with LCA: flatten the tree with an Euler tour and put a BIT or segment tree on top.</p>
+</section>
+
+</main>
+<footer>
+  <span>© 2026 Krrish Bhasin</span>
+</footer>
+</div>
+</body>
+</html>
