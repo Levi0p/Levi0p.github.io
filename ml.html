@@ -64,9 +64,9 @@
 <h3>Instruction-Tuned LLaMA for Domain-Specific QA</h3>
 <p class="sub">Python, PyTorch, HuggingFace, PEFT, bitsandbytes</p>
 <ul>
-<li>Built a QLoRA instruction-tuning pipeline for LLaMA-family models (7&ndash;8B): a 4-bit NF4 base with LoRA adapters on the attention projections, sized to train on a single 16&ndash;24 GB GPU.</li>
-<li>Masked the loss to response tokens only, so the model learns to answer rather than echo the prompt, and kept the prompt template in one file so training and inference can't drift apart.</li>
-<li>Held out a validation split and kept the best checkpoint by eval loss to catch overfitting on small datasets, with scripts to merge the adapter and compare the fine-tuned model against the zero-shot base on the same prompts.</li>
+<li>Built a QLoRA instruction-tuning pipeline for 7&ndash;8B LLaMA models: frozen 4-bit NF4 base with double quantization and bf16 compute, plus rank-16 LoRA adapters (&alpha;=32) on the q/k/v/o attention projections, with gradient checkpointing to fit on a single 16&ndash;24 GB GPU.</li>
+<li>Wrote response-only loss masking (prompt-token labels set to -100) and a custom collator that pads labels with -100, so neither the prompt nor padding contributes gradient. A single shared prompt template keeps training and inference formatting identical.</li>
+<li>Trained with lr 2e-4, 3% warmup and cosine decay at an effective batch size of 16, selecting the checkpoint with the lowest validation loss to limit overfitting on small instruction sets. Added an adapter merge into bf16 base weights for deployment and a greedy-decoding evaluation of fine-tuned vs. zero-shot base on held-out prompts.</li>
 </ul>
 <p><a href="https://github.com/Levi0p/Instruction-Tuned-LLM-for-Domain-Specific-QA">github.com/Levi0p/Instruction-Tuned-LLM-for-Domain-Specific-QA</a></p>
 </div>
