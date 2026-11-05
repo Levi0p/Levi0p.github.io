@@ -60,6 +60,16 @@
 </ul>
 <p><a href="https://github.com/Levi0p/speculative-decoding">github.com/Levi0p/speculative-decoding</a></p>
 </div>
+<div class="entry">
+<h3>Instruction-Tuned LLaMA for Domain-Specific QA</h3>
+<p class="sub">Python, PyTorch, HuggingFace, PEFT, bitsandbytes</p>
+<ul>
+<li>Built a QLoRA instruction-tuning pipeline for LLaMA-family models (7&ndash;8B): a 4-bit NF4 base with LoRA adapters on the attention projections, sized to train on a single 16&ndash;24 GB GPU.</li>
+<li>Masked the loss to response tokens only, so the model learns to answer rather than echo the prompt, and kept the prompt template in one file so training and inference can't drift apart.</li>
+<li>Held out a validation split and kept the best checkpoint by eval loss to catch overfitting on small datasets, with scripts to merge the adapter and compare the fine-tuned model against the zero-shot base on the same prompts.</li>
+</ul>
+<p><a href="https://github.com/Levi0p/Instruction-Tuned-LLM-for-Domain-Specific-QA">github.com/Levi0p/Instruction-Tuned-LLM-for-Domain-Specific-QA</a></p>
+</div>
 
 </main>
 <footer>
