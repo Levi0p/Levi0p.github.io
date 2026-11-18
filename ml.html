@@ -22,6 +22,28 @@
 <h1>Machine Learning</h1>
 <h2>Experience</h2>
 <div class="entry">
+<h3>Research Intern, IIT Madras <span class="meta">Nov 2026 - Present</span></h3>
+<p class="sub">Centre for Responsible AI (CeRAI), with Dr. Devika Jay · Remote</p>
+</div>
+<div class="entry">
+<h3>Research Collaboration, Offline Meta-RL <span class="meta">Nov 2026 - Present</span></h3>
+<p class="sub">With Mohammadreza Nakhaei, PhD student, Robot Learning Lab, Aalto University · Remote</p>
+<ul>
+<li>Ported SPC (NeurIPS 2026), a context-based offline meta-RL method built on learned world models, from PyTorch to JAX: the SPC agent with all 7 world-model variants, DroQ, and the full training and evaluation pipeline.</li>
+<li>Wrote numerical parity tests against the original PyTorch code, and found and fixed several issues in the original implementation along the way.</li>
+<li>Now working on which context transitions are actually informative for task inference: mean-pooling the context weights every transition equally, so uninformative samples (like a point robot inside a corridor) dilute the task estimate.</li>
+</ul>
+</div>
+<div class="entry">
+<h3>Research Collaboration, Policy Gradients for Factored Actions <span class="meta">Nov 2026 - Present</span></h3>
+<p class="sub">With Jiamin He, PhD student, University of Alberta and Amii · Remote</p>
+<ul>
+<li>Extending Distributions as Actions (DA-AC), an actor-critic method whose critic takes the policy's action distribution as input, to factored discrete action spaces.</li>
+<li>Main question: does DA-AC need a general critic, or can an additive per-dimension critic give a better policy gradient? An additive critic gives the exact DA actor gradient when it is fit on current-policy actions, and breaks down with action interactions and stale replay data.</li>
+<li>Working through the bandit case analytically first, then a full 2x2 comparison (general vs additive critic, with and without ICL) across small and large replay buffers on Hopper and Walker, with predictions written down before each run.</li>
+</ul>
+</div>
+<div class="entry">
 <h3>ML Research Intern, IIT Bombay <span class="meta">Sep 2025 - Feb 2026</span></h3>
 <p class="sub">NLP / Machine Translation Lab, advised by Prof. Ganesh Ramakrishnan · Mumbai</p>
 <ul>
