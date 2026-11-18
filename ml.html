@@ -22,21 +22,21 @@
 <h1>Machine Learning</h1>
 <h2>Experience</h2>
 <div class="entry">
-<h3>Research Collaborator, Robot Learning Lab, Aalto University <span class="meta">Nov 2026 - Present</span></h3>
-<p class="sub">Offline meta-RL, with Mohammadreza Nakhaei (PhD student)</p>
+<h3>Research Collaborator, Aalto University <span class="meta">Nov 2026 - Present</span></h3>
+<p class="sub">Robot Learning Lab, in collaboration with Mohammadreza Nakhaei (PhD Researcher)</p>
 <ul>
-<li>Reimplemented SPC (NeurIPS 2026), a context-based offline meta-RL method built on learned world models, from PyTorch to JAX: the agent with all 7 world-model variants, DroQ, and the full training and evaluation pipeline.</li>
-<li>Matched the original numerically with parity tests, and caught and fixed several bugs in the reference code along the way.</li>
-<li>Now studying which context transitions actually carry task information, since mean pooling weights every transition equally and lets uninformative ones dilute the task estimate.</li>
+<li>Reimplemented SPC (NeurIPS 2026), a context-based offline meta-RL algorithm built on learned world models, in JAX, covering all 7 world-model variants, the DroQ agent, and the full training and evaluation pipeline.</li>
+<li>Validated numerical parity against the reference PyTorch implementation and identified and resolved several implementation defects in the original codebase.</li>
+<li>Investigating informative-transition selection for task inference, addressing the dilution of the task representation caused by uniform mean pooling over context transitions.</li>
 </ul>
 </div>
 <div class="entry">
-<h3>Research Collaborator, RLAI Lab, University of Alberta <span class="meta">Nov 2026 - Present</span></h3>
-<p class="sub">Policy gradients, with Jiamin He (PhD student, Amii)</p>
+<h3>Research Collaborator, University of Alberta <span class="meta">Nov 2026 - Present</span></h3>
+<p class="sub">RLAI Lab, in collaboration with Jiamin He (PhD Researcher)</p>
 <ul>
-<li>Extending Distributions as Actions (DA-AC), an actor-critic method whose critic conditions on the policy's action distribution, to factored discrete action spaces.</li>
-<li>Testing whether a simple additive per-dimension critic can replace DA-AC's general critic: it gives the exact actor gradient on current-policy data, and the open question is how it holds up under action interactions and stale replay.</li>
-<li>Planned a bandit analysis followed by a full 2x2 study (general vs additive critic, with and without ICL) across replay buffer sizes on Hopper and Walker, with predictions written down before each run.</li>
+<li>Extending Distributions as Actions (DA-AC, ICLR 2026) to factored discrete action spaces, evaluating whether an additive per-dimension critic can replace the general distribution-conditioned critic.</li>
+<li>Analyzing the conditions under which the additive critic yields the exact actor gradient, and its behavior under action interactions and stale off-policy replay data.</li>
+<li>Designed a 2x2 ablation (general vs. additive critic, with and without ICL) across replay buffer sizes on Hopper and Walker, with predictions recorded before each experiment.</li>
 </ul>
 </div>
 <div class="entry">
